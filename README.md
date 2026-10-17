@@ -28,6 +28,7 @@ Supporting skills, also callable on their own:
 | [`code-review-local`](skills/code-review-local/SKILL.md) | Reviews the branch against the spec and the Linear issue, and writes a report to `.codekit/reviews/`. In Claude Code it runs as a separate agent that hasn't seen your conversation, so it judges the code against the spec rather than against what was discussed. |
 | [`resolve-conflict`](skills/resolve-conflict/SKILL.md) | Rebases onto the base branch and resolves conflicts with you, never silently picking a side. |
 | [`linear-docs`](skills/linear-docs/SKILL.md) | Uploads the spec folder to the Linear issue as documents, one per file, through Linear's API (not the MCP), so file contents never pass through the model. Offered by `sdd-plan`, and refreshed by `sdd-pr`. |
+| [`update-deps`](skills/update-deps/SKILL.md) | Upgrades dependencies in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches each major bump, applies everything that passes your checks as one batch, and asks you only about updates that need a code change. New features worth adopting become Linear issues. Commits through `sdd-commit`. |
 
 Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in Claude Code. In Claude Code they only run when you call them, which keeps their descriptions out of every session's context. The exception is `resolve-conflict`, which Claude can also start by itself when it hits a merge conflict. Antigravity doesn't support that setting, so there the skills can also start on their own from a request like "pick up ENG-123".
 
@@ -40,7 +41,7 @@ Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in C
 | [GitHub CLI](https://cli.github.com/) (`gh`) | `sdd-pr` | `gh auth login` |
 | Linear MCP | `sdd-plan`, `sdd-pr`, ticket context | Bundled. Authenticate once (see below). |
 | `LINEAR_API_KEY` + Python 3.10+ | `linear-docs` only | A personal API key exported in your shell profile. Optional. |
-| Context7 MCP | Up-to-date library docs while planning and implementing | Bundled. Works without an account; add an API key for higher rate limits. |
+| Context7 MCP | Up-to-date library docs while planning, implementing, and updating dependencies | Bundled. Works without an account; add an API key for higher rate limits. |
 | [uv](https://docs.astral.sh/uv/) | Installing SpecKit and pre-commit | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | SpecKit **or** OpenSpec | Optional | `/codekit init` offers to install and set one up. Without one, the skills plan and implement by hand. See [docs/extensions/](docs/extensions/). |
 

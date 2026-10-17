@@ -4,13 +4,13 @@ Guidance for coding agents working in this repository. This is the only context 
 
 ## What This Repo Is
 
-codekit is a **Claude Code + Antigravity plugin** that runs spec-driven development from a Linear issue to a GitHub PR. The core loop is four skills: `sdd-plan` → `sdd-implement` → `sdd-commit` → `sdd-pr`. They're backed by `codekit` (the setup hub, with `init` and `update` modes), `code-review-local`, `resolve-conflict`, and `linear-docs`.
+codekit is a **Claude Code + Antigravity plugin** that runs spec-driven development from a Linear issue to a GitHub PR. The core loop is four skills: `sdd-plan` → `sdd-implement` → `sdd-commit` → `sdd-pr`. They're backed by `codekit` (the setup hub, with `init` and `update` modes), `code-review-local`, `resolve-conflict`, and `linear-docs`. `update-deps` sits beside the loop: it upgrades a project's dependencies and files follow-up features as Linear issues.
 
 External systems, and how each one is reached:
 - **Linear**, via the hosted Linear MCP (`https://mcp.linear.app/mcp`, OAuth), bundled in `.mcp.json` and `mcp_config.json`. Skills call tools by name: `get_issue`, `list_issues`, `list_comments`, `list_issue_statuses`, `list_teams`, `save_issue`, `save_comment`.
   **Exception:** bulk document uploads go through `skills/linear-docs/scripts/linear_docs.py`, which calls Linear's GraphQL API with `LINEAR_API_KEY`, because sending file contents through the MCP costs their full size in tokens. Keep that script standard-library only and safe to re-run (it matches documents by title and compares words). Large writes to Linear go through a script; small ones go through the MCP.
 - **GitHub**, via the `gh` CLI only. There's no GitHub MCP.
-- **Library docs**, via the Context7 MCP (`https://mcp.context7.com/mcp`, no auth), bundled next to Linear. `sdd-plan` (plan phase) and `sdd-implement` call `resolve-library-id` → `query-docs` rather than relying on memory.
+- **Library docs**, via the Context7 MCP (`https://mcp.context7.com/mcp`, no auth), bundled next to Linear. `sdd-plan` (plan phase), `sdd-implement`, and `update-deps` call `resolve-library-id` → `query-docs` rather than relying on memory.
 - **SDD frameworks**: SpecKit (detected by `.specify/`) and OpenSpec (detected by `openspec/`), with a manual fallback when neither is present.
 
 There's no build system and no compiled code: Markdown and JSON only. **The deliverable is prose an agent will execute**, so a change to a `SKILL.md` is a behavior change.

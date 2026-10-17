@@ -111,6 +111,10 @@ flowchart LR
 
 Run `/codekit update` after updating the plugin, or periodically. The constitution and OpenSpec config are only ever **appended to**: a principle added in a newer codekit release is offered, and your existing ones are never reworded.
 
+### Dependencies
+
+`/update-deps` (or `/update-deps <package> ...`) upgrades the project's own dependencies. On the base branch it first offers a `deps/update-<date>` branch. It applies every update that verifies green with the project's existing checks, shows a three-line card for each update that needs a code change, and offers the new features worth adopting as Linear issues. It finishes with a report and an offer to commit through `/sdd-commit`.
+
 **Optional, pairs well:** [repokit](https://github.com/TheLampshady/repokit)'s `/dockit` generates `docs/FOUNDATIONS.md` and `docs/PRINCIPLES.md`. `sdd-implement` and `code-review-local` read those as the project's conventions, and `/codekit init` uses `docs/FOUNDATIONS.md`, when present, to build the constitution's Project Patterns. codekit works without them.
 
 ## Git configuration
@@ -118,7 +122,7 @@ Run `/codekit update` after updating the plugin, or periodically. The constituti
 | Key | Set by | Purpose |
 |-----|--------|---------|
 | `codekit.basebranch` | `/codekit init`, or offered on first detection | Target for diffs, rebases, and PRs |
-| `codekit.linear-team` | `/codekit init`, `sdd-plan` | Scopes `sdd-plan next` |
+| `codekit.linear-team` | `/codekit init`, `sdd-plan`, `update-deps` | Scopes `sdd-plan next`; the team `update-deps` files issues in |
 | `codekit.reviewers` | `/codekit init` | GitHub handles passed to `gh pr create --reviewer` |
 
 Set any key by hand with `git config --local codekit.<key> <value>`, or put it in `.config/.gitconfig` to share it.
