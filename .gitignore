@@ -1,0 +1,19 @@
+# Project Specific
+.claude/settings.local.json
+.gemini
+.cursorrules
+.codekit/
+
+# OS Files
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.env
+.venv
+venv/

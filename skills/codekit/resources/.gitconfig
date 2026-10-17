@@ -1,0 +1,7 @@
+[commit]
+	template = .config/.commit-message-template
+
+[codekit]
+	basebranch = BASE_BRANCH
+	linear-team = LINEAR_TEAM_KEY
+	reviewers = GITHUB_REVIEWERS

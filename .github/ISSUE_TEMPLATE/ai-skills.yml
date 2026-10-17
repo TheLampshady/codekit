@@ -1,0 +1,115 @@
+name: AI Skills Issue
+description: Report an issue with AI skills or agent behavior
+title: "[AI Skills]: "
+labels: ["ai-skills", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this AI skills issue. Please fill out the sections below to help us understand and reproduce the problem.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which codekit skill or agent had the issue?
+      multiple: true
+      options:
+        - "Skill: sdd-plan"
+        - "Skill: sdd-implement"
+        - "Skill: sdd-commit"
+        - "Skill: sdd-pr"
+        - "Skill: codekit (init / update)"
+        - "Skill: code-review-local"
+        - "Skill: resolve-conflict"
+        - "Skill: linear-docs"
+        - Other / General
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ai-platform
+    attributes:
+      label: AI Platform
+      description: Which AI platform were you using?
+      multiple: true
+      options:
+        - Claude Code
+        - Antigravity IDE
+        - Antigravity CLI (agy)
+        - Other (specify in description)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install Method
+      description: How did you install codekit?
+      options:
+        - Claude plugin (marketplace)
+        - Antigravity plugin
+        - Manual copy
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      description: How often can you reproduce this issue?
+      options:
+        - Always
+        - Sometimes
+        - "Once"
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: project-stack
+    attributes:
+      label: Project Stack
+      description: What IDE, language, and framework were you working with?
+      placeholder: |
+        - IDE: VS Code
+        - Language: Python 3.12
+        - Framework: FastAPI
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-asked
+    attributes:
+      label: What You Asked
+      description: Provide the exact prompt or request you made to the AI.
+      placeholder: "Paste your prompt here..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-got
+    attributes:
+      label: What You Got
+      description: Describe or paste the actual response/output from the AI.
+      placeholder: "Paste or describe the AI's response..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-expected
+    attributes:
+      label: What You Expected
+      description: Describe what you expected the AI to do or return.
+      placeholder: "Describe your expected outcome..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or information that might help.
+    validations:
+      required: false

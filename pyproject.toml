@@ -1,0 +1,10 @@
+[project]
+name = "codekit"
+version = "0.1.0"
+description = "Spec-driven development skills: Linear issue to GitHub pull request"
+readme = "README.md"
+requires-python = ">=3.11"
+
+[project.urls]
+Homepage = "https://github.com/TheLampshady/codekit"
+Repository = "https://github.com/TheLampshady/codekit"

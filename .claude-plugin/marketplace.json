@@ -1,0 +1,14 @@
+{
+  "name": "codekit-marketplace",
+  "owner": {
+    "name": "Lampshady",
+    "email": "lampshady24@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "codekit",
+      "source": "./",
+      "description": "Spec-driven development from ticket to pull request. sdd-plan pulls a Linear issue, branches, and hands it to SpecKit or OpenSpec; sdd-implement builds it; sdd-commit commits it; sdd-pr opens the GitHub PR and links it back to Linear."
+    }
+  ]
+}
