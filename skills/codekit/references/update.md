@@ -6,7 +6,7 @@ If the repo was never initialized, stop and run [init.md](init.md) instead.
 
 ## 1. Prerequisites
 
-See [SKILL.md](../SKILL.md#prerequisites-both-modes). The same required checks apply.
+See [SKILL.md](../SKILL.md#prerequisites). The same required checks apply.
 
 ## 2. Upgrade tools
 
@@ -43,8 +43,9 @@ Offer to run `pre-commit autoupdate --config .config/.pre-commit-config.yaml`. I
 Each item fills in only what's missing; it never rewrites:
 
 1. **Git wiring:** `include.path` still lists `../.config/.gitconfig`, and `.git/hooks/pre-commit` exists. If either is missing, repeat init Step 5 (a fresh clone, or a teammate who never ran init).
-2. **Config keys:** compare the `[codekit]` keys in `.config/.gitconfig` with [../resources/.gitconfig](../resources/.gitconfig). For any key the plugin knows but the file lacks, ask for its value as init Step 3 does, and append it.
-3. **`.gitignore`:** append any required line (init Step 4) that's missing.
+2. **Config keys:** compare the `[codekit]` keys in `.config/.gitconfig` with [../resources/.gitconfig](../resources/.gitconfig). For any key the plugin knows but the file lacks, ask for its value as init Step 3 does, and append it. If `linear` is missing, ask *"Use Linear with this repo?"* first. With `linear = false`, don't ask for the Linear keys.
+3. **`.gitignore`:** append any required line (init Step 4) that's missing. The `specs/` lines apply only when the repo uses Linear.
+3b. **Product docs Action:** if `.github/workflows/codekit-docs.yml` exists, compare it with [../resources/codekit-docs.yml](../resources/codekit-docs.yml), filled in as init Step 7 does. If they differ, show the diff and offer to replace the file. It's codekit's template, but the team may have edited it, so never replace it without a yes. If it's missing and the repo uses Linear with `codekit.linear-project` set, offer init Step 7. Either way, re-run the `gh secret list` check from init Step 7.
 4. **Constitution / OpenSpec config:** compare the project's constitution, or the `context` and `rules` in `openspec/config.yaml`, with the current [../resources/principles.md](../resources/principles.md) and [../resources/openspec-config.yaml](../resources/openspec-config.yaml), matching principles by heading or meaning. Follow the "filled in" row of [sdd-context.md §2](sdd-context.md#2-check-what-exists-never-overwrite): offer to **append** only the principles or rules the project lacks, show the exact text, and bump the constitution's MINOR version. Don't change or remove principles the project already has, even if the baseline worded them differently.
 5. **Project Patterns:** check that each documented pattern still matches the code, i.e. the file paths and imports it cites still exist. Report patterns that point at code that's gone, and patterns the code now has but the doc doesn't. Offer the fixes, and never apply them silently.
 

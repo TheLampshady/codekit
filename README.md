@@ -5,29 +5,31 @@
 codekit gives your coding agent four skills that run the daily loop: pick up a Linear issue, plan it with SpecKit or OpenSpec, implement it, commit it, and open the PR. The Linear issue stays in sync the whole way.
 
 ```
- Linear issue ──► /sdd-plan ──► /sdd-implement ──► /sdd-commit ──► /sdd-pr ──► GitHub PR
-                   │ branch        │ tasks + code     │ commit +       │ rebase, push,
-                   │ In Progress   │ tests + lint     │ local review   │ PR, In Review
-                   └ spec + plan                                       └ Fixes ENG-123
+ Linear issue ──► /sdd-plan ──► /sdd-implement ──► /sdd-commit ──► /sdd-pr ──► GitHub PR ──► merge
+                   │ branch        │ tasks + code     │ commit +       │ rebase, push,          │ codekit-docs Action
+                   │ In Progress   │ converge         │ local review   │ PR, In Review          │ Product Map, Decision Log,
+                   └ spec (local)  │ tests + lint                    └ spec → issue           └ Glossary in Linear
 ```
+
+Code goes in GitHub, prose goes in Linear. With SpecKit (or no framework), spec folders stay local while you work, where SpecKit expects them, and are gitignored. At PR time the spec, plan, and research go to the Linear issue, so PRs show code only. After merge, the decisions are pulled into the project's Decision Log, kept for reference only.
 
 ## Skills
 
 | Skill | What it does |
 |-------|--------------|
 | [`sdd-plan`](skills/sdd-plan/SKILL.md) | Pulls a Linear issue (by ID, URL, or `next`), assigns it and moves it to *In Progress*, checks out Linear's branch name, then runs SpecKit specify → clarify → plan or OpenSpec explore → propose. Posts clarification answers back to the issue. |
-| [`sdd-implement`](skills/sdd-implement/SKILL.md) | Runs SpecKit tasks → implement or OpenSpec apply, or implements the plan by hand following `docs/FOUNDATIONS.md` and the project's conventions. Runs tests and linters. |
+| [`sdd-implement`](skills/sdd-implement/SKILL.md) | Runs SpecKit tasks → implement → converge or OpenSpec apply, or implements the plan by hand following `docs/FOUNDATIONS.md` and the project's conventions. Runs tests and linters. |
 | [`sdd-commit`](skills/sdd-commit/SKILL.md) | Commits to the feature branch with the project's template and the Linear ID. Amends the existing commit on later runs, retries after formatter hooks, then runs a local review. |
-| [`sdd-pr`](skills/sdd-pr/SKILL.md) | Rebases, pushes, and opens or updates the PR with `gh`. The body includes `Fixes ENG-123`, and the issue gets the PR link and moves to *In Review*. |
+| [`sdd-pr`](skills/sdd-pr/SKILL.md) | Rebases, archives OpenSpec changes in the same PR, pushes, opens or updates the PR with `gh`, and uploads the final spec to the issue. The body includes `Fixes ENG-123`, and the issue gets the PR link and moves to *In Review*. |
 
 Supporting skills, also callable on their own:
 
 | Skill | What it does |
 |-------|--------------|
-| [`codekit`](skills/codekit/SKILL.md) | **`init`:** repo setup. Checks gh, the Linear MCP and uv; sets up SpecKit or OpenSpec; installs the commit template, pre-commit and shared codekit git config; writes the constitution or OpenSpec `config.yaml` from codekit's principles plus patterns found in your code. **`update`:** upgrades uv, specify, openspec, pre-commit and gh, refreshes the framework's project files, and re-syncs the config and constitution with the current plugin. |
-| [`code-review-local`](skills/code-review-local/SKILL.md) | Reviews the branch against the spec and the Linear issue, and writes a report to `.codekit/reviews/`. In Claude Code it runs as a separate agent that hasn't seen your conversation, so it judges the code against the spec rather than against what was discussed. |
+| [`codekit`](skills/codekit/SKILL.md) | **`init`:** repo setup. Checks gh, the Linear MCP and uv; sets up SpecKit or OpenSpec; installs the commit template, pre-commit and shared codekit git config; writes the constitution or OpenSpec `config.yaml` from codekit's principles plus patterns found in your code. **`update`:** upgrades uv, specify, openspec, pre-commit and gh, refreshes the framework's project files, and re-syncs the config and constitution with the current plugin. **`docs`:** keeps a Product Map (what the app does and what its data and interfaces support, in product language, each entry linked to code), a Decision Log (what was decided and why, from each ticket's spec), and a Glossary current in the app's Linear project, for PMs who don't read the code. `init` can install a GitHub Action that runs it after every merge. |
+| [`code-review-local`](skills/code-review-local/SKILL.md) | Reviews the branch against the spec and the Linear issue, and writes a report to the system temp folder, so nothing lands in the repo. In Claude Code it runs as a separate agent that hasn't seen your conversation, so it judges the code against the spec rather than against what was discussed. |
 | [`resolve-conflict`](skills/resolve-conflict/SKILL.md) | Rebases onto the base branch and resolves conflicts with you, never silently picking a side. |
-| [`linear-docs`](skills/linear-docs/SKILL.md) | Uploads the spec folder to the Linear issue as documents, one per file, through Linear's API (not the MCP), so file contents never pass through the model. Offered by `sdd-plan`, and refreshed by `sdd-pr`. |
+| [`linear-docs`](skills/linear-docs/SKILL.md) | Keeps the spec's decision-bearing files (spec, plan, research) on the Linear issue as documents, the spec's copy of record, through Linear's API (not the MCP), so file contents never pass through the model. Run by `sdd-pr` at PR time. Can also pull a spec back down from the issue. |
 | [`update-deps`](skills/update-deps/SKILL.md) | Upgrades dependencies in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches each major bump, applies everything that passes your checks as one batch, and asks you only about updates that need a code change. New features worth adopting become Linear issues. Commits through `sdd-commit`. |
 
 Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in Claude Code. In Claude Code they only run when you call them, which keeps their descriptions out of every session's context. The exception is `resolve-conflict`, which Claude can also start by itself when it hits a merge conflict. Antigravity doesn't support that setting, so there the skills can also start on their own from a request like "pick up ENG-123".
@@ -40,8 +42,8 @@ Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in C
 | Git + a GitHub remote | Everything | — |
 | [GitHub CLI](https://cli.github.com/) (`gh`) | `sdd-pr` | `gh auth login` |
 | Linear MCP | `sdd-plan`, `sdd-pr`, ticket context | Bundled. Authenticate once (see below). |
-| `LINEAR_API_KEY` + Python 3.10+ | `linear-docs` only | A personal API key exported in your shell profile. Optional. |
-| Context7 MCP | Up-to-date library docs while planning, implementing, and updating dependencies | Bundled. Works without an account; add an API key for higher rate limits. |
+| `LINEAR_API_KEY` + Python 3.10+ | `linear-docs`, `codekit docs` | A personal API key exported in your shell profile. Needed with SpecKit or no framework, where the Linear issue holds the spec. Optional with OpenSpec. |
+| Context7 MCP | Up-to-date library docs while planning and updating dependencies | Bundled. Works without an account; add an API key for higher rate limits. |
 | [uv](https://docs.astral.sh/uv/) | Installing SpecKit and pre-commit | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | SpecKit **or** OpenSpec | Optional | `/codekit init` offers to install and set one up. Without one, the skills plan and implement by hand. See [docs/extensions/](docs/extensions/). |
 
@@ -72,7 +74,7 @@ Then connect Linear once:
 - **Claude Code:** run `/mcp`, select `linear`, and complete the OAuth flow in the browser.
 - **Antigravity:** open the MCP servers panel and sign in to `linear`.
 
-In each project you want to use it in, run `/codekit init` once. It won't continue until `gh`, the Linear MCP and `uv` are working, then offers to set up SpecKit or OpenSpec for you. Run `/codekit update` from time to time to upgrade the tools and pick up changes from newer codekit releases. In Claude Code, plugin skills are namespaced, so the full commands are `/codekit:codekit init` and `/codekit:codekit update`.
+In each project you want to use it in, run `/codekit init` once. It asks whether the repo uses Linear (optional), won't continue until `gh` and `uv` work (plus the Linear MCP if you use Linear), then offers to set up SpecKit or OpenSpec for you. Run `/codekit update` from time to time to upgrade the tools and pick up changes from newer codekit releases. In Claude Code, plugin skills are namespaced, so the full commands are `/codekit:codekit init` and `/codekit:codekit update`.
 
 ### Updating codekit
 
@@ -106,7 +108,9 @@ codekit keeps its settings in git config, so they can be shared through a commit
 | Key | Used by | Default |
 |-----|---------|---------|
 | `codekit.basebranch` | all | GitHub default branch |
+| `codekit.linear` | all | asked by `init`. `false` turns off every Linear step, and specs stay committed in the repo |
 | `codekit.linear-team` | `sdd-plan next` | any team |
+| `codekit.linear-project` | `sdd-plan next`, `update-deps`, `codekit docs` | any project |
 | `codekit.reviewers` | `sdd-pr` | none (CODEOWNERS) |
 
 Issue states aren't configured: codekit reads them from your Linear team. `/sdd-plan` moves an issue to the team's first *In Progress*-type state, and `/sdd-pr` to its review state, if the team has one.

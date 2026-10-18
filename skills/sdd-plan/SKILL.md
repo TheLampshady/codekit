@@ -12,6 +12,8 @@ Turns a ticket into a reviewed plan on a feature branch. The plan is the deliver
 
 ## Workflow
 
+**Linear off:** if `git config codekit.linear` is `false`, the repo doesn't use Linear. Treat any identifier as plain text, take only a file or pasted text as input, and skip Steps 2, 3, and 7. The spec folder stays committed with the code, since it has no other home.
+
 ### 1. Identify the input
 
 Classify the request into exactly one source:
@@ -30,7 +32,7 @@ If none apply ("plan the ticket" with nothing else), ask: *"Which issue? Give me
 
 ### 2. Choose an issue ("next" only)
 
-Call the Linear MCP `list_issues` with `assignee: "me"` and `state: "unstarted"`. If `git config codekit.linear-team` is set, pass it as `team`. Present up to 10 by priority with identifier, title and priority, and let the user pick. If nothing is returned, retry with `state: "backlog"` before telling the user the queue is empty.
+Call the Linear MCP `list_issues` with `assignee: "me"` and `state: "unstarted"`. If `git config codekit.linear-team` is set, pass it as `team`. If `git config codekit.linear-project` is set, pass it as `project`. Present up to 10 by priority with identifier, title and priority, and let the user pick. If nothing is returned, retry with `state: "backlog"` before telling the user the queue is empty.
 
 ### 3. Fetch and start the Linear issue (Linear path only)
 
@@ -82,33 +84,29 @@ Detect the framework from the repo root and use the first match:
 | OpenSpec | `openspec/` directory (or `openspec/config.yaml`) |
 | None | Neither |
 
-> [!IMPORTANT]
-> **No code during specify and clarify.** While writing the spec and resolving ambiguities, don't run commands, execute scripts, or search the codebase to fill gaps. Work only from `<ticket-contents>`. Every gap becomes a `[NEEDS CLARIFICATION]` question for the user. The **plan** phase is different: it is expected to read the codebase, and to check every library, framework, SDK, or cloud API the plan relies on with the Context7 MCP (`resolve-library-id`, then `query-docs`) at the version the project pins, instead of planning from memory.
+In the plan phase, check every library, framework, SDK, or cloud API the plan relies on with Context7 (`resolve-library-id`, then `query-docs`) at the version the project pins.
 
 **SpecKit**
 1. Run `/speckit.specify` (or the `speckit-specify` skill) with `<ticket-contents>` as the feature description. SpecKit records the active feature in `.specify/feature.json` and does not depend on the branch name.
 2. **Branch guard:** if SpecKit's opt-in `git` extension checked out a numbered branch (e.g. `001-...`), run `git checkout <branch-name>` to switch back. Ask before deleting the extra branch. Suggest disabling that extension in [docs/extensions/speckit.md](../../docs/extensions/speckit.md).
-3. Save `<ticket-contents>` to `<feature-dir>/ticket.md`, where `<feature-dir>` is the directory named in `.specify/feature.json`.
-4. Run `/speckit.clarify` and put its questions to the user. Wait for answers.
-5. Post the clarifications to Linear (Step 7), then run `/speckit.plan`.
+3. Run `/speckit.clarify` and put its questions to the user. Wait for answers.
+4. Post the clarifications to Linear (Step 7), then run `/speckit.plan`.
 
-If a SpecKit command isn't installed, do that phase directly: write `spec.md`, ask the clarification questions in chat, or write `plan.md` yourself.
+If a SpecKit command isn't installed, stop and suggest `/codekit update`, which installs and refreshes the framework's commands. Don't do the framework's work by hand.
 
 **OpenSpec**
 1. Derive `<change-id>` as a kebab-case slug of the title, prefixed with the lowercased ticket ID when there is one (e.g. `eng-123-add-login`).
 2. Run `/opsx:explore` with `<ticket-contents>` to surface open questions. Put them to the user and wait for answers.
 3. Post the clarifications to Linear (Step 7).
 4. Run `/opsx:propose <change-id>` with `<ticket-contents>` plus the answers. It drafts the proposal, spec deltas, design and tasks under `openspec/changes/<change-id>/`.
-5. Save `<ticket-contents>` to `openspec/changes/<change-id>/ticket.md`.
 
-If the `/opsx:*` commands aren't installed, write `proposal.md`, `design.md` and `tasks.md` under `openspec/changes/<change-id>/` yourself.
+If the `/opsx:*` commands aren't installed, stop and suggest `/codekit update`, which installs and refreshes the framework's commands. Don't do the framework's work by hand.
 
 **None (manual)**
 1. Save `<ticket-contents>` to `specs/<ticket-id-or-slug>/ticket.md`.
 2. List the `[NEEDS CLARIFICATION]` items with lettered options and a recommendation. Stop until the user answers.
 3. Post the clarifications to Linear (Step 7).
 4. Read the codebase and write `specs/<ticket-id-or-slug>/plan.md`: the approach, the files to touch, risks, and how to test.
-5. Mention once that SpecKit or OpenSpec would automate this. See [docs/extensions/](../../docs/extensions/).
 
 ### 7. Post clarifications to Linear
 
@@ -118,19 +116,9 @@ Only if this is a Linear issue **and** clarifications were asked and answered.
 2. Call `save_comment` with `issueId: <ticket-id>` and the filled template as `body`. Send real newlines, not `\n` escapes.
 3. If a requirement changed materially, offer to update the issue description with `save_issue` (`patch` with `append`). Never replace the description outright.
 
-### 8. Publish the plan to Linear (optional)
+### 8. Summary
 
-Only if this is a Linear issue and the plan files exist. Offer once: *"Publish the spec and plan to ENG-123 as Linear documents?"* On a yes, read [../linear-docs/SKILL.md](../linear-docs/SKILL.md) and follow it on the plan folder. It uploads through Linear's API using `LINEAR_API_KEY`, so the file contents never pass through the model. If the key isn't set, mention how to add it and move on. Never upload plan files through the Linear MCP.
-
-### 9. Summary
-
-Report:
-- **Issue:** `<ticket-id>`, its title, and the state it moved to (or "local spec").
-- **Branch:** `<branch-name>`, created or reused.
-- **Framework:** SpecKit, OpenSpec, or manual, with the paths of the plan files.
-- **Linear comment:** posted or not, and why.
-- **Linear docs:** published (with counts), declined, or skipped because no key is set.
-- **Next:** review the plan and give feedback here to revise it, then run `/sdd-implement`. Don't suggest `/speckit.tasks`, `/opsx:apply` or other framework commands, because `sdd-implement` runs them.
+One line each: the issue and its new state (or "local spec"), the branch, and the plan files' paths. Next is reviewing the plan here, then `/sdd-implement`.
 
 ## Base branch
 

@@ -1,17 +1,17 @@
 ---
 name: linear-docs
-description: 'Upload a spec folder (SpecKit specs/NNN-name, OpenSpec openspec/changes/<id>, or specs/<id>) to its Linear issue as documents, one per file, adding new ones and overwriting ones with the same title, without passing file text through the model. Uses a Linear API key, not the MCP. Use when asked to: sync, upload, push, publish, or refresh spec docs on a Linear issue, or after a spec, plan, design, or tasks file changes and the issue should match.'
+description: 'Keep a spec folder''s decision-bearing files (spec, plan, research; OpenSpec proposal, design) on its Linear issue as documents, the spec''s copy of record, since spec folders aren''t committed. Uploads or pulls without passing file text through the model, using a Linear API key, not the MCP. Use when asked to: sync, upload, push, publish, or refresh spec docs on a Linear issue, pull a spec back from its issue, resume a spec on another machine.'
 user-invocable: true
 disable-model-invocation: true
 context: fork
 agent: general-purpose
 background: false
-argument-hint: "[spec folder | ENG-123] [--dry-run] [--prune] [--yes]"
+argument-hint: "[spec folder | ENG-123] [--pull] [--dry-run] [--prune] [--yes]"
 ---
 
 # Linear Docs
 
-Syncs a spec folder to its Linear issue with [scripts/linear_docs.py](scripts/linear_docs.py). The script reads the files from disk and calls Linear's GraphQL API itself. That keeps the documents identical to the files, and a sync costs a few hundred tokens instead of the size of the files. When this skill applies, never upload spec files through the Linear MCP (`save_document`): that sends every byte through the model.
+Syncs a spec folder to its Linear issue with [scripts/linear_docs.py](scripts/linear_docs.py). In SpecKit and no-framework projects the spec folder is gitignored and stays local while you work. `sdd-pr` uploads it at PR time, making the issue its copy of record, and the `codekit-docs` Action reads it after merge to build the Decision Log. The script reads the files from disk and calls Linear's GraphQL API itself. That keeps the documents identical to the files, and a sync costs a few hundred tokens instead of the size of the files. When this skill applies, never upload spec files through the Linear MCP (`save_document`): that sends every byte through the model.
 
 **Script path:** `scripts/linear_docs.py` lives in this skill's directory, the folder containing this `SKILL.md`, not the user's project. Call it by absolute path and run it **from the project root**, because the script finds the project from the current git repo.
 
@@ -46,6 +46,10 @@ This skill may run as an isolated subagent that can't talk to the user. When a s
 
 5. **Report** the issue link and the counts, in one or two lines.
 
+## Pull
+
+`--pull <folder> --issue ENG-123` writes the issue's spec documents into `<folder>`, for example when resuming a spec on another machine. Files that already exist locally are kept, unless `--yes` is passed, which means the user approved overwriting them. If the script reports kept files, that's a [decision](#decisions): list them, with `--yes` as the option.
+
 ## Resolution
 
 | What | Order |
@@ -57,9 +61,8 @@ This skill may run as an isolated subagent that can't talk to the user. When a s
 
 ## What gets uploaded
 
-- One document per top-level `.md` file, titled with the file name, in reading order: `spec.md`, `proposal.md`, `plan.md`, `design.md`, `research.md`, `data-model.md`, `tasks.md`, then any others alphabetically.
-- One `contracts` document joining `contracts/*.md` (SpecKit), and one `specs` document joining `specs/**/*.md` (OpenSpec spec deltas). Each part is headed with its path.
-- Skipped: `ticket.md` (it's the issue itself), `quickstart.md`, and `checklists/`.
+- Only the files that record what was decided and why, each as one document titled with its file name: `spec.md`, `proposal.md`, `plan.md`, `design.md`, `research.md`.
+- Everything else stays local: `tasks.md`, `data-model.md`, `contracts/`, `quickstart.md`, checklists, and a manual plan's `ticket.md` (which is the issue itself). Once the feature ships, the code supersedes them.
 - Documents are matched by title. An existing title is overwritten only when its words differ. Linear rewrites markdown on save, so punctuation, bullets and links are ignored, and a formatting-only edit isn't uploaded. A new title creates a new document. Nothing is deleted unless `--prune` is passed. Prune also removes duplicate copies with the same title.
 
 ## Rules

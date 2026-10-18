@@ -1,6 +1,6 @@
 ---
 name: code-review-local
-description: 'Review the current branch''s changes against the base branch before opening a PR. Checks the diff against the Linear issue and the SpecKit/OpenSpec plan for completeness, plus correctness, security, and the project''s conventions, then saves a report with blockers and suggestions. Use when asked to: review my code, review my changes, check my work, self-review, local review, is this ready for a PR.'
+description: 'Review the current branch''s changes against the base branch before opening a PR. Checks the diff against the SpecKit/OpenSpec spec or the hand-written plan for completeness, plus correctness, security, and the project''s conventions, then saves a report with blockers and suggestions. Use when asked to: review my code, review my changes, check my work, self-review, local review, is this ready for a PR.'
 user-invocable: true
 disable-model-invocation: true
 context: fork
@@ -13,7 +13,7 @@ argument-hint: "[base-branch]"
 
 A senior-engineer pass over the branch before anyone else sees it. Reviews are read-only: this skill reports and never edits code.
 
-In Claude Code, `/code-review-local` runs as an isolated subagent that hasn't seen the conversation, so it judges the diff against the spec and the ticket, not against what was discussed while building it. Everything it needs comes from git, the spec files, and Linear. It never stops to ask: anything it would ask about goes in the report.
+In Claude Code, `/code-review-local` runs as an isolated subagent that hasn't seen the conversation, so it judges the diff against the spec and the ticket, not against what was discussed while building it. Everything it needs comes from git and the spec files. It never stops to ask: anything it would ask about goes in the report.
 
 ## Workflow
 
@@ -34,17 +34,16 @@ Find what the change is *supposed* to do, using the first source that exists:
 1. **SpecKit:** `spec.md`, `plan.md`, `tasks.md` in the feature directory named by `.specify/feature.json`
 2. **OpenSpec:** `openspec/changes/<change-id>/` (proposal, design, tasks, spec deltas)
 3. **Manual:** `specs/<ticket>/ticket.md` and `plan.md`
-4. **Linear:** a Linear identifier in the branch name or the last commit. Call `get_issue` and `list_comments`.
 
 Then load the conventions: `docs/FOUNDATIONS.md`, `docs/PRINCIPLES.md`, `CONTRIBUTING.md`, and `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`.
 
-If there's no spec and no ticket, do a general quality review and say so in the report.
+If there's no spec, do a general quality review and say so in the report.
 
 ### 3. Review
 
 Read each changed file in full where the diff alone lacks context. Check:
 
-- **Completeness:** every requirement and task in the spec or ticket is implemented. Name the missing ones.
+- **Completeness:** every requirement and task in the spec is implemented. Name the missing ones.
 - **Correctness:** logic errors, unhandled edge cases, error paths, concurrency, off-by-ones.
 - **Security:** committed secrets, injection, unsafe deserialization, missing authorization checks, logging sensitive data.
 - **Tests:** new behavior has tests, and the tests assert the behavior rather than the implementation.
@@ -59,7 +58,7 @@ Each finding needs a `file:line`, what's wrong, and a concrete fix. Don't pad: a
 
 ### 4. Report
 
-Write the report to `.codekit/reviews/<branch-name-with-slashes-as-dashes>.md`, creating the directory if needed. `.codekit/` is gitignored by `/codekit init`. If it isn't ignored in this repo, don't edit `.gitignore`. Note at the end of the report that `.codekit/` should be added.
+Write the report to `${TMPDIR:-/tmp}/codekit/<repo>/reviews/<branch-name-with-slashes-as-dashes>.md`, where `<repo>` is the name of the repo's top-level folder, creating the directory if needed. It's the system temp folder, so nothing lands in the repo and the OS clears old reports eventually. Give the full path in your reply so the caller can find it.
 
 ```markdown
 # Local review: <branch>
@@ -77,9 +76,6 @@ Write the report to `.codekit/reviews/<branch-name-with-slashes-as-dashes>.md`, 
 
 ## Suggestions
 - `path:line`: <problem>. **Fix:** <fix>
-
-## Looks good
-- <things done well, briefly>
 ```
 
 ### 5. Present

@@ -46,9 +46,9 @@ The skills use these Linear tools: `get_issue`, `list_issues`, `list_comments`, 
 
 Also bundled: Context7 (`https://mcp.context7.com/mcp`) serves current, version-specific library documentation. `sdd-plan` uses it to check the APIs a plan relies on, and `sdd-implement` uses it before writing code against a library. It works with no setup. If you hit rate limits, get a free key at [context7.com](https://context7.com) and add it to your client's MCP config for `context7`. Don't put the key in this repo's `.mcp.json`.
 
-### Linear API key (optional, for `linear-docs`)
+### Linear API key
 
-Uploading spec files through the MCP would send every byte of every file through the model. `linear-docs` avoids that with a small standard-library Python script that calls Linear's GraphQL API directly. The script needs a personal API key:
+With SpecKit or no framework, specs aren't committed: the Linear issue holds the spec, plan, and research, so the key is **needed** there. With OpenSpec it's optional. Uploading files through the MCP would send every byte through the model, so `linear-docs` and the product docs use small standard-library Python scripts that call Linear's GraphQL API directly. They need a personal API key:
 
 1. In Linear, go to **Settings → Security & access → Personal API keys** and create a key.
 2. Export it in your shell profile (`~/.zshrc`, `~/.bashrc`), not in a project file:
@@ -83,14 +83,31 @@ In the project repo, run:
 ```
 
 It will:
-1. **Check prerequisites.** These are required, and init stops until they're fixed: `gh` installed and logged in, the Linear MCP connected, and `uv` installed. It runs every check first and reports them together. Also checked, without stopping: a GitHub remote, `LINEAR_API_KEY` (set and accepted by Linear), and `python3`.
+1. **Ask whether the repo uses Linear**, then **check prerequisites.** These are required, and init stops until they're fixed: `gh` installed and logged in, `uv` installed, and (only if you use Linear) the Linear MCP connected. It runs every check first and reports them together. Also checked, without stopping: a GitHub remote, `LINEAR_API_KEY` (set and accepted by Linear), and `python3`.
 2. **Set up an SDD framework.** If the repo has none, it asks you to pick SpecKit, OpenSpec, or none. Then it installs the CLI if needed (`specify` through uv, `openspec` through npm) and runs `specify init` / `openspec init` non-interactively for your agent. If you pick none, `sdd-plan` writes plans by hand, and you can add a framework later by rerunning init.
-3. **Ask for settings:** the base branch, the Linear team, and (optionally) reviewers.
-4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist, and add `.codekit/` to `.gitignore`.
+3. **Ask for settings:** the base branch, the Linear team, the app's Linear project (which you create in Linear first), and (optionally) reviewers.
+4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist. With SpecKit or no framework, it gitignores `specs/` and `.specify/feature.json`, since the Linear issue holds the spec. codekit's own scratch files (review reports, working copies) go in the system temp folder, never the repo.
 5. **Wire them in** with `git config --local --add include.path ../.config/.gitconfig`, and install pre-commit.
 6. **Write the SDD context:** `.specify/memory/constitution.md` or `openspec/config.yaml`, built from codekit's constitution plus the Project Patterns found in your code. A file you've already filled in is never replaced.
+7. **Offer the product docs Action** (if you picked a Linear project). See [Product docs Action](#product-docs-action) below.
 
-Commit `.config/`, `.gitignore`, and the framework files (including the constitution or config) so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
+Commit `.config/`, `.gitignore`, the framework files (including the constitution or config), and `.github/workflows/codekit-docs.yml` if installed, so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
+
+### Product docs Action
+
+`.github/workflows/codekit-docs.yml` keeps three documents in your Linear project current: the **Product Map** (what the app does and what its data and interfaces support, in product language, each entry linked to code), the **Decision Log** (what was decided and why, from each merged ticket's spec documents), and the **Glossary** (the team's vocabulary, which PMs edit in Linear). PMs read them, ask Linear Agent about the app, and file tickets in the same project. None of that needs a GitHub seat.
+
+How it works: after every push to the base branch, GitHub starts a runner, checks out the repo, installs Claude Code and this plugin, and runs `/codekit:codekit docs --ci`. That pulls the current documents from Linear, updates the map for what the new commits changed, adds each merged ticket's decisions from its issue's spec documents, and pushes them back. The map records the commit it was last synced to, so a skipped or failed run is caught up by the next one. A merge that only touches docs, tests, CI config, or lockfiles doesn't start the workflow at all (its `paths-ignore` list, which you can edit). Those changes are covered by the next run. To rebuild from scratch, open the repo's **Actions** tab, pick **codekit docs**, choose **Run workflow**, and check **full**.
+
+It needs two repository secrets. Set them once in your own terminal (init tells you which are missing):
+
+```bash
+claude setup-token                                      # prints a token for your Claude Pro/Max plan
+gh secret set CLAUDE_CODE_OAUTH_TOKEN                   # paste the token when prompted
+gh secret set LINEAR_API_KEY --body "$LINEAR_API_KEY"   # reuses the key from your profile
+```
+
+Runs count against that Claude plan's usage. To use an Anthropic API key instead, change the workflow's `claude_code_oauth_token` line to `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}` and set that secret.
 
 ## 3. Keeping current
 

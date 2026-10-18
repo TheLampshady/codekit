@@ -44,12 +44,6 @@ If a hook or config blocks it, show the error verbatim and ask before working ar
 4. When the step is fully resolved: `GIT_EDITOR=true git rebase --continue`.
 5. Repeat until the rebase completes.
 
-### Questions worth asking (pick the ones that fit)
-
-- "`<base-branch>` changed `<fn>` to `<new signature>`, but your commit still calls the old one. Should I update your call sites?"
-- "Both sides added entries to `<list>`. Keep both, or is one a duplicate?"
-- "`<base-branch>` deleted `<file>`, but your commit modifies it. Keep yours, accept the deletion, or move your change elsewhere?"
-
 ### Escape hatches
 
 Offer these at any conflict:

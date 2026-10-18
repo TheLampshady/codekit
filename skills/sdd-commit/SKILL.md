@@ -1,6 +1,6 @@
 ---
 name: sdd-commit
-description: 'Commit the current feature work with a templated message that carries the Linear issue ID. Guards against committing to the base branch, stages changes, writes the message from the project''s commit template, amends when the branch already has its commit, and retries once after formatter hooks. Use when asked to: commit, commit my changes, wrap up, save changes, amend the commit.'
+description: 'Commit the current feature work with a templated message that carries the ticket ID. Guards against committing to the base branch, stages changes, writes the message from the project''s commit template, amends when the branch already has its commit, and retries once after formatter hooks. Use when asked to: commit, commit my changes, wrap up, save changes, amend the commit.'
 user-invocable: true
 disable-model-invocation: true
 ---
@@ -14,7 +14,7 @@ One feature branch carries one evolving commit by default: the first run creates
 ### 1. Branch safety
 
 1. Resolve `<base-branch>`: `git config codekit.basebranch`, then `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), then whichever of `origin/main` / `origin/master` exists, then `main`.
-2. If `git branch --show-current` equals `<base-branch>`, stop. Offer to create a feature branch (`/sdd-plan` for a Linear issue, or `git checkout -b <name>`). Never commit to the base branch.
+2. If `git branch --show-current` equals `<base-branch>`, stop. Offer to create a feature branch (`/sdd-plan` for a ticket, or `git checkout -b <name>`). Never commit to the base branch.
 
 ### 2. Stage and decide the strategy
 
@@ -37,12 +37,12 @@ One feature branch carries one evolving commit by default: the first run creates
 3. [resources/.commit-message-template](resources/.commit-message-template)
 
 **Ticket ID** (`<ticket-id>`):
-1. A Linear identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased. Linear branch names look like `user/eng-123-title`.
+1. A ticket identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, e.g. `user/eng-123-title` → `ENG-123`.
 2. When amending, the ID in the previous message.
 3. The conversation.
 4. If none, drop the ticket fields from the template. Don't invent one.
 
-For the summary, use the Linear issue title from the conversation, or `get_issue`, as raw material. Describe the change, not the ticket.
+For the summary, use the ticket title from the conversation or the spec as raw material. Describe the change, not the ticket.
 
 ### 4. Write the message
 
@@ -71,5 +71,4 @@ Use `git commit --amend -F -` for amend or reword.
 ### 6. Review and summary
 
 1. Run the local review, unless the user said to skip it. Its instructions are in [../code-review-local/SKILL.md](../code-review-local/SKILL.md). If you can start a subagent (Claude Code's Agent tool, `general-purpose`), give it that file's path and `<base-branch>`, and tell it to follow the file. That way the review comes from a reviewer that hasn't seen this conversation. Otherwise, follow the file here. Surface any **Blockers** prominently.
-2. Report the short hash, the branch, the subject, new or amended, and the review result.
-3. **Next:** if the review found no blockers, run `/sdd-pr`. If it found blockers, fix them and run `/sdd-commit` again, which amends. If this skill was called by another workflow, return to it instead.
+2. End with the short hash, the subject, new or amended, and the review result. Next is `/sdd-pr`, or fixing blockers and running `/sdd-commit` again, which amends.

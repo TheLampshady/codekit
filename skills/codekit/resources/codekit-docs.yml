@@ -1,0 +1,77 @@
+# Installed by `/codekit init`. Keeps this app's Product Map, Decision Log,
+# and Glossary current in Linear, for PMs who don't read the code. The
+# Decision Log is built from the spec documents on each merged ticket's issue.
+#
+# Runs after every push to BASE_BRANCH (a merged PR) and updates only what the
+# new commits changed. Run it by hand from the Actions tab with "full" checked
+# to rebuild the map from scratch.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Claude Pro or Max)
+#   LINEAR_API_KEY           Linear: Settings > Security & access > Personal API keys
+# and `codekit.linear-project` in .config/.gitconfig.
+
+name: codekit docs
+
+on:
+  push:
+    branches: [BASE_BRANCH]
+    # A merge that only touches these can't change what users see, so no runner
+    # starts. Nothing is lost: the next run diffs from the last synced commit.
+    # Edit the list to fit the project.
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/**"
+      - ".config/**"
+      - "**/test/**"
+      - "**/tests/**"
+      - "**/__tests__/**"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+      - "**/*_test.*"
+      - "**/package-lock.json"
+      - "**/yarn.lock"
+      - "**/pnpm-lock.yaml"
+      - "**/uv.lock"
+      - "**/poetry.lock"
+      - "**/Cargo.lock"
+      - "**/go.sum"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Rebuild the product map from scratch
+        type: boolean
+        default: false
+
+# One run at a time, so two merges never write the same document at once.
+# A run that's skipped while another waits is caught up by the next one,
+# because each run starts from the commit the map was last synced to.
+concurrency:
+  group: codekit-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          TMPDIR: ${{ runner.temp }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: https://github.com/TheLampshady/codekit.git
+          plugins: codekit@codekit-marketplace
+          prompt: /codekit:codekit docs --ci ${{ inputs.full && '--full' || '' }}
+          claude_args: >-
+            --add-dir ${{ runner.temp }}
+            --allowedTools "Read,Glob,Grep,Write,Bash(git log *),Bash(git diff *),Bash(git rev-parse *),Bash(git merge-base *),Bash(git ls-files *),Bash(python3 *)"

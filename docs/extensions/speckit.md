@@ -75,3 +75,7 @@ specify extension remove <name>
 ```
 
 Approved catalogs go in `.specify/extension-catalogs.yml`.
+
+### Where specs live
+
+codekit doesn't commit SpecKit's feature folders. `/codekit init` adds `specs/` and `.specify/feature.json` to `.gitignore`, so PRs show code only. The files stay local while you work, exactly where SpecKit expects them. At PR time, `sdd-pr` uploads the decision-bearing files (`spec.md`, `plan.md`, `research.md`) to the Linear issue, their copy of record. `tasks.md`, `data-model.md`, `contracts/`, and `quickstart.md` stay local, because the code supersedes them once the feature ships. After merge, the `codekit-docs` Action pulls each ticket's documents and adds its decisions (from `research.md`'s Decision / Rationale / Alternatives considered, the plan's Complexity Tracking, and the spec's Assumptions) to the project's Decision Log in Linear.

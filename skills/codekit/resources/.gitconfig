@@ -3,5 +3,7 @@
 
 [codekit]
 	basebranch = BASE_BRANCH
+	linear = USE_LINEAR
 	linear-team = LINEAR_TEAM_KEY
+	linear-project = LINEAR_PROJECT
 	reviewers = GITHUB_REVIEWERS

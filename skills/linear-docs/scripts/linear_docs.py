@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Upload a spec folder to its Linear issue as documents: one document per file,
-adding new ones and overwriting the ones with the same title.
+Keep a spec folder's decision-bearing files on its Linear issue as documents,
+one per file, adding new ones and overwriting the ones with the same title.
+The issue is the spec's copy of record; the folder itself isn't committed.
 
     python3 linear_docs.py [FOLDER] [--issue ENG-123] [--team ENG]
         [--dry-run] [--prune] [--yes]
+    python3 linear_docs.py --pull FOLDER --issue ENG-123 [--yes]
     python3 linear_docs.py --check
 
 - Run from inside the project; its root is the enclosing git repo.
@@ -15,7 +17,13 @@ adding new ones and overwriting the ones with the same title.
 - The key is LINEAR_API_KEY from the environment. The key is never printed.
 - With --team, or `git config codekit.linear-team`, issues on other teams are
   refused.
+- Only spec.md, plan.md, research.md (SpecKit, manual) and proposal.md,
+  design.md (OpenSpec) are uploaded: the files that carry what was decided and
+  why. Tasks, contracts, data models and the rest are build-time only.
 - --prune also deletes issue documents with no local file (asks unless --yes).
+- --pull writes the issue's documents into FOLDER, e.g. to resume work on
+  another machine or to extract decisions after merge. Existing files are kept
+  unless --yes.
 - --check only verifies the key works and prints whose it is; nothing is read
   from or written to any issue.
 
@@ -35,23 +43,16 @@ from urllib import error, request
 
 API_URL = "https://api.linear.app/graphql"
 
-# Known spec files first, in reading order (SpecKit and OpenSpec names mixed;
-# a folder only has one set). Other top-level markdown follows alphabetically,
-# then each bundled subfolder joined into one document.
+# The files worth keeping after the build, in reading order (SpecKit and
+# OpenSpec names mixed; a folder only has one set). Everything else in a spec
+# folder is superseded by the code once it ships.
 DOC_ORDER = (
     "spec.md",
     "proposal.md",
     "plan.md",
     "design.md",
     "research.md",
-    "data-model.md",
-    "tasks.md",
 )
-# ticket.md is the issue itself, saved by sdd-plan; uploading it back is noise.
-SKIPPED = frozenset({"quickstart.md", "ticket.md"})
-# Subfolder -> glob. SpecKit contracts/, OpenSpec spec deltas under specs/.
-# checklists/ and anything else is skipped.
-BUNDLES = {"contracts": "*.md", "specs": "**/*.md"}
 SPEC_FILES = ("spec.md", "ticket.md", "proposal.md")
 
 ISSUE_ID = r"[A-Za-z][A-Za-z0-9]+-\d+"
@@ -98,23 +99,35 @@ def issue_in(name: str) -> str | None:
 
 
 def collect_documents(folder: Path) -> list[LocalDoc]:
-    """One document per top-level .md file, plus one per bundled subfolder."""
-    rank = {name: i for i, name in enumerate(DOC_ORDER)}
-    files = sorted(
-        (p for p in folder.glob("*.md") if p.is_file() and p.name not in SKIPPED),
-        key=lambda p: (rank.get(p.name, len(DOC_ORDER)), p.name),
-    )
-    docs = [LocalDoc(p.name, p.read_text(encoding="utf-8")) for p in files]
-    for sub, pattern in BUNDLES.items():
-        parts = [
-            f"# {p.relative_to(folder / sub)}\n\n"
-            f"{p.read_text(encoding='utf-8').strip()}\n"
-            for p in sorted((folder / sub).glob(pattern))
-            if p.is_file()
-        ]
-        if parts:
-            docs.append(LocalDoc(sub, "\n---\n\n".join(parts)))
-    return docs
+    """One document per decision-bearing file the folder has, in reading order."""
+    return [
+        LocalDoc(name, (folder / name).read_text(encoding="utf-8"))
+        for name in DOC_ORDER
+        if (folder / name).is_file()
+    ]
+
+
+def pull_documents(
+    issue: dict[str, Any], folder: Path, root: Path, overwrite: bool
+) -> int:
+    """Write the issue's spec documents into folder, keeping existing files."""
+    folder.mkdir(parents=True, exist_ok=True)
+    wanted = set(DOC_ORDER)
+    print(f"{issue['identifier']} {issue['url']}  -> {display(folder, root)}")
+    found = 0
+    for doc in issue["documents"]["nodes"]:
+        if doc["title"] not in wanted:
+            continue
+        found += 1
+        path = folder / doc["title"]
+        if path.exists() and not overwrite:
+            print(f"  kept      {doc['title']} (exists locally)")
+            continue
+        path.write_text(doc.get("content") or "", encoding="utf-8")
+        print(f"  pulled    {doc['title']}")
+    if not found:
+        print("  none      (the issue has no spec documents)")
+    return 0
 
 
 def issue_from_folder(folder: Path) -> str | None:
@@ -275,12 +288,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prune", action="store_true")
     parser.add_argument("--yes", action="store_true")
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--pull", action="store_true")
     args = parser.parse_args(argv)
 
     if args.check:
         return check_key()
 
     root = project_root()
+    if args.pull:
+        if not args.folder or not args.issue:
+            print("--pull needs a FOLDER and --issue ENG-123.", file=sys.stderr)
+            return 1
+        key = api_key()
+        if not key:
+            print(MISSING_KEY, file=sys.stderr)
+            return 1
+        issue = graphql(key, ISSUE_QUERY, {"id": args.issue.upper()})["issue"]
+        return pull_documents(issue, args.folder.resolve(), root, args.yes)
+
     branch_issue = issue_in(git(root, "branch", "--show-current"))
     folder = args.folder or default_folder(root, branch_issue)
     folder = folder.resolve() if folder else None
