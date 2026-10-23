@@ -15,6 +15,7 @@ One feature branch carries one evolving commit by default: the first run creates
 
 1. Resolve `<base-branch>`: `git config codekit.basebranch`, then `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), then whichever of `origin/main` / `origin/master` exists, then `main`.
 2. If `git branch --show-current` equals `<base-branch>`, stop. Offer to create a feature branch (`/sdd-plan` for a ticket, or `git checkout -b <name>`). Never commit to the base branch.
+3. If it prints nothing, HEAD is detached, usually by a rebase in progress. Stop: a commit here would land in the middle of the rebase. If `git status` shows a rebase in progress, `resolve-conflict` resumes it.
 
 ### 2. Stage and decide the strategy
 
@@ -27,7 +28,11 @@ One feature branch carries one evolving commit by default: the first run creates
 | No | 0 | Stop: "Nothing to commit. The working tree is clean and matches `<base-branch>`." |
 | No | ≥1 | **Reword** only if the user asked to fix the message. Otherwise stop. |
 | Yes | 0 | **New** commit |
-| Yes | ≥1 | **Amend**, unless the user asked for a separate commit or the last commit is already on the remote and others may have pulled it. If `git status -sb` shows the branch tracking a remote with an open PR, amend still works, but warn that `sdd-pr` will need `--force-with-lease`. |
+| Yes | ≥1 | **Amend**, unless the user asked for a separate commit or someone else has pushed to this branch (below) |
+
+Amending rewrites the branch's last commit, so check two things first:
+- **Someone else has pushed to this branch:** `git log --format=%ae origin/<base-branch>..origin/<branch>` lists an email other than `git config user.email`. Make a **new** commit instead, because rewriting a shared branch breaks their copy.
+- **The commit is already pushed:** `git branch -r --contains HEAD` lists a branch. Amend anyway, and warn that `sdd-pr` will push with `--force-with-lease`.
 
 ### 3. Resolve the template and ticket
 
@@ -36,11 +41,11 @@ One feature branch carries one evolving commit by default: the first run creates
 2. `.config/.commit-message-template` or `.gitmessage` in the repo
 3. [resources/.commit-message-template](resources/.commit-message-template)
 
-**Ticket ID** (`<ticket-id>`):
-1. A ticket identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, e.g. `user/eng-123-title` → `ENG-123`.
+**Ticket ID** (`<ticket-id>`). If `git config codekit.linear` is `false`, there's none. Otherwise, first match wins:
+1. A ticket identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, e.g. `user/eng-123-title` → `ENG-123`. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`), so keep it only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, if `get_issue` finds it. If Linear can't be reached, keep it and say it's unchecked.
 2. When amending, the ID in the previous message.
 3. The conversation.
-4. If none, drop the ticket fields from the template. Don't invent one.
+4. None: put `[TASK]` where the template has `[TICKET_ID]`, and drop its other ticket lines, such as `Linear:`. Don't invent an ID.
 
 For the summary, use the ticket title from the conversation or the spec as raw material. Describe the change, not the ticket.
 
@@ -65,7 +70,7 @@ EOF
 Use `git commit --amend -F -` for amend or reword.
 
 **Hook handling:**
-- If the commit fails because a pre-commit hook reformatted files, run `git add -u` and retry **once**.
+- If the commit fails because a pre-commit hook reformatted files, re-stage the files you staged in Step 2 (`git add <files>`) and retry **once**. Not `git add -u`: it would also stage tracked files you left out.
 - If it fails on a lint, type or test error, show the output verbatim and stop. Never pass `--no-verify` unless the user explicitly asks.
 
 ### 6. Review and summary

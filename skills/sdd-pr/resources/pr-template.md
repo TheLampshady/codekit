@@ -16,7 +16,7 @@ Fixes TICKET_ID
 
 ## Spec
 
-<link or path to the spec/plan, e.g. specs/<feature>/plan.md or openspec/changes/<change-id>/proposal.md. Remove this section if there is none>
+<where reviewers can read the spec. If the spec folder isn't in git, say it's on TICKET_ID in Linear (spec, plan, research). Otherwise give its path, e.g. openspec/changes/archive/<date>-<change-id>/proposal.md. Remove this section if there is none>
 
 ## Notes for reviewers
 

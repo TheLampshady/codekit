@@ -20,34 +20,34 @@ Classify the request into exactly one source:
 
 | Source | Detect by | `<ticket-id>` | `<branch-name>` |
 |--------|-----------|---------------|-----------------|
-| **Linear identifier** | Matches `[A-Z][A-Z0-9]+-\d+` (e.g. `ENG-123`) | The identifier | Issue's `gitBranchName` (Step 3) |
+| **Linear identifier** | Matches `[A-Za-z][A-Za-z0-9]+-\d+` (e.g. `ENG-123`, `eng-123`) | The identifier, uppercased | Issue's `gitBranchName` (Step 3) |
 | **Linear URL** | `linear.app/<workspace>/issue/<ID>/...` | The `<ID>` path segment | Issue's `gitBranchName` |
 | **"next" / "my next issue"** | No ID, but asks for their next issue | Chosen in Step 2 | Issue's `gitBranchName` |
 | **Local file** | A path that exists | A Linear identifier found in the file, if any | `feature/<slug-of-filename>` |
 | **Pasted text** | Ticket-like text in the message | A Linear identifier found in the text, if any | `feature/<slug-of-title>` |
 
-When a file or pasted text contains a Linear identifier, treat it as the Linear path: the issue in Linear is the source of truth and the local text is extra context.
+When a file or pasted text contains a Linear identifier, treat it as the Linear path: the issue in Linear is the source of truth and the local text is extra context. If `get_issue` can't find it, it was only text shaped like an ID (`UTF-8`, `SHA-256`): say so and continue on the local path.
 
 If none apply ("plan the ticket" with nothing else), ask: *"Which issue? Give me a Linear ID or URL, a spec file path, paste the details, or say 'next' to pick from your assigned issues."* Stop until answered.
 
 ### 2. Choose an issue ("next" only)
 
-Call the Linear MCP `list_issues` with `assignee: "me"` and `state: "unstarted"`. If `git config codekit.linear-team` is set, pass it as `team`. If `git config codekit.linear-project` is set, pass it as `project`. Present up to 10 by priority with identifier, title and priority, and let the user pick. If nothing is returned, retry with `state: "backlog"` before telling the user the queue is empty.
+Call the Linear MCP `list_issues` with `assignee: "me"`, `state: "unstarted"`, and `fields: ["title", "priority", "status"]`, so descriptions aren't fetched for every issue. If `git config codekit.linear-team` is set, pass it as `team`. If `git config codekit.linear-project` is set, pass it as `project`. Present up to 10 with identifier, title and priority, Urgent first and No priority last (Linear numbers it 0), and let the user pick. If nothing is returned, retry with `state: "backlog"` before telling the user the queue is empty.
 
 ### 3. Fetch and start the Linear issue (Linear path only)
 
 1. Call `get_issue` with the `<ticket-id>`. Keep `title`, `description`, `url`, `gitBranchName`, `status`, `team`, `assignee`, `labels`, `project`, and `attachments`. Call `list_comments` for the issue as well, because the discussion often holds requirements the description lacks.
-2. **Start it.** If the issue is already in a `started`-type state, skip the move. Otherwise call `list_issue_statuses` for the issue's team and take the first state whose type is `started`, which is "In Progress" on most teams.
+2. **Start it.** If the issue is already in a `started`-type state, skip the move. If it's `completed` or `canceled`, ask before reopening it. Otherwise call `list_issue_statuses` for the issue's team and take the first state whose type is `started`, which is "In Progress" on most teams.
 3. Call `save_issue` with `id: <ticket-id>`, `state: <that state>`, and `assignee: "me"` if it is unassigned. If it's assigned to someone else, ask before reassigning.
-4. If `git config codekit.linear-team` is unset, offer to save the issue's team key: `git config --local codekit.linear-team <team-key>`. The `next` flow uses it.
+4. If `git config codekit.linear-team` is unset, offer to save the issue's team key: `git config -f .config/.gitconfig codekit.linear-team <team-key>`, so the team shares it (`--local` if that file doesn't exist). The `next` flow uses it.
 
 If any Linear call fails with an auth or connection error, follow [Linear MCP errors](#linear-mcp-errors). Do not silently continue on the non-Linear path.
 
 ### 4. Check out the feature branch
 
 1. `git status --porcelain`. If the tree is dirty, ask whether to stash, commit, or carry the changes onto the new branch.
-2. Resolve `<base-branch>` (see [Base branch](#base-branch)) and `git fetch origin <base-branch>`.
-3. If `<branch-name>` exists locally: `git checkout <branch-name>`. If it only exists on the remote: `git checkout --track origin/<branch-name>`. Otherwise: `git checkout -b <branch-name> origin/<base-branch>`.
+2. Resolve `<base-branch>` (see [Base branch](#base-branch)) and `git fetch origin <base-branch>`. With no `origin` remote, skip the fetch and use the local `<base-branch>` below.
+3. If `<branch-name>` exists locally: `git checkout <branch-name>`. If it only exists on the remote: `git checkout --track origin/<branch-name>`. Otherwise: `git checkout --no-track -b <branch-name> origin/<base-branch>`. `--no-track` stops git from making the base branch its upstream; `sdd-pr` sets the real one on the first push.
 
 Using Linear's `gitBranchName` verbatim is deliberate: Linear's GitHub integration links any branch or PR that contains the identifier, and it moves the issue through its workflow automatically.
 
@@ -86,27 +86,29 @@ Detect the framework from the repo root and use the first match:
 
 In the plan phase, check every library, framework, SDK, or cloud API the plan relies on with Context7 (`resolve-library-id`, then `query-docs`) at the version the project pins.
 
+Name the work `<feature-slug>`: a kebab-case slug of the title, prefixed with the lowercased ticket ID when there is one (e.g. `eng-123-add-login`). Later skills find the ticket's files by the ID in that name, even after you've switched to another ticket and back.
+
 **SpecKit**
-1. Run `/speckit.specify` (or the `speckit-specify` skill) with `<ticket-contents>` as the feature description. SpecKit records the active feature in `.specify/feature.json` and does not depend on the branch name.
-2. **Branch guard:** if SpecKit's opt-in `git` extension checked out a numbered branch (e.g. `001-...`), run `git checkout <branch-name>` to switch back. Ask before deleting the extra branch. Suggest disabling that extension in [docs/extensions/speckit.md](../../docs/extensions/speckit.md).
-3. Run `/speckit.clarify` and put its questions to the user. Wait for answers.
-4. Post the clarifications to Linear (Step 7), then run `/speckit.plan`.
+1. **Already specified?** If `specs/<feature-slug>/spec.md` exists, `/speckit.specify` would replace it, so ask whether to start over or keep it. To keep it, point SpecKit at it the way `/speckit.specify` does, by writing `{"feature_directory": "specs/<feature-slug>"}` to `.specify/feature.json`, and skip to step 4.
+2. Run `/speckit.specify` (or the `speckit-specify` skill) with `<ticket-contents>` as the feature description and `SPECIFY_FEATURE_DIRECTORY=specs/<feature-slug>`, so the folder is named for the ticket instead of numbered. SpecKit records it in `.specify/feature.json`.
+3. **Branch guard:** if SpecKit's opt-in `git` extension checked out a numbered branch (e.g. `001-...`), run `git checkout <branch-name>` to switch back. Ask before deleting the extra branch. Suggest disabling that extension in [docs/extensions/speckit.md](../../docs/extensions/speckit.md).
+4. Run `/speckit.clarify` and put its questions to the user. Wait for answers.
+5. Post the clarifications to Linear (Step 7), then run `/speckit.plan`.
 
 If a SpecKit command isn't installed, stop and suggest `/codekit update`, which installs and refreshes the framework's commands. Don't do the framework's work by hand.
 
 **OpenSpec**
-1. Derive `<change-id>` as a kebab-case slug of the title, prefixed with the lowercased ticket ID when there is one (e.g. `eng-123-add-login`).
-2. Run `/opsx:explore` with `<ticket-contents>` to surface open questions. Put them to the user and wait for answers.
-3. Post the clarifications to Linear (Step 7).
-4. Run `/opsx:propose <change-id>` with `<ticket-contents>` plus the answers. It drafts the proposal, spec deltas, design and tasks under `openspec/changes/<change-id>/`.
+1. Run `/opsx:explore` with `<ticket-contents>` to surface open questions. Put them to the user and wait for answers.
+2. Post the clarifications to Linear (Step 7).
+3. Run `/opsx:propose <feature-slug>` with `<ticket-contents>` plus the answers. It drafts the proposal, spec deltas, design and tasks under `openspec/changes/<feature-slug>/`.
 
 If the `/opsx:*` commands aren't installed, stop and suggest `/codekit update`, which installs and refreshes the framework's commands. Don't do the framework's work by hand.
 
 **None (manual)**
-1. Save `<ticket-contents>` to `specs/<ticket-id-or-slug>/ticket.md`.
-2. List the `[NEEDS CLARIFICATION]` items with lettered options and a recommendation. Stop until the user answers.
+1. Save `<ticket-contents>` to `specs/<feature-slug>/ticket.md`.
+2. Read the ticket and the code it touches, then list what's unclear or undecided as questions, each with lettered options and a recommendation. Stop until the user answers.
 3. Post the clarifications to Linear (Step 7).
-4. Read the codebase and write `specs/<ticket-id-or-slug>/plan.md`: the approach, the files to touch, risks, and how to test.
+4. Write `specs/<feature-slug>/plan.md`: the approach, the decisions from step 2 and why, the files to touch, risks, and how to test.
 
 ### 7. Post clarifications to Linear
 
@@ -127,7 +129,7 @@ One line each: the issue and its new state (or "local spec"), the branch, and th
 3. The first of `origin/main` or `origin/master` that exists.
 4. `main`.
 
-If it came from step 2–4, offer once to save it: `git config --local codekit.basebranch <branch>`.
+If it came from step 2–4, offer once to save it: `git config -f .config/.gitconfig codekit.basebranch <branch>` (`--local` if that file doesn't exist).
 
 ## Linear MCP errors
 

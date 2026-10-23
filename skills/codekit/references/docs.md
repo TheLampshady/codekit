@@ -17,7 +17,7 @@ Usually this runs in the `codekit-docs` GitHub Action after every merge (see ini
 
 ## 1. Prerequisites
 
-From [SKILL.md](../SKILL.md#prerequisites), run only the Git repo check and the Linear API key check, and both are **required** here. Also required:
+From [SKILL.md](../SKILL.md#prerequisites), run only the Git repo check and the Linear API key check, and both are **required** here. With `--ci`, run the key check as plain `python3 <plugin>/skills/linear-docs/scripts/linear_docs.py --check`: the job passes the key in its environment, and the Action allows only commands that start with `python3`. Also required:
 
 - **Linear:** `codekit.linear` isn't `false`. This mode only works with Linear, because the documents live there. Without it, stop and say so.
 - **Project:** `git config codekit.linear-project`, or the same key in `.config/.gitconfig`. If it's missing, stop and suggest `/codekit update`.
@@ -34,7 +34,7 @@ python3 <script> pull --title "Glossary" --out <tmp>/docs/glossary.md
 python3 <script> pull --title "Decision Log" --out <tmp>/docs/decision-log.md
 ```
 
-Locally, run each command through `bash -lc '...'` so the shell profile's `LINEAR_API_KEY` is loaded.
+Locally, run each command the way [linear-docs](../../linear-docs/SKILL.md) runs its script, so the profile's `LINEAR_API_KEY` is found: directly when the key is in the environment, else through `"$SHELL" -lic '…' </dev/null`.
 
 ## 3. Pick full or incremental
 

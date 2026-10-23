@@ -64,7 +64,7 @@ Finish with a **Quick Reference** table (Import · Purpose) of the shared entry 
 |-------------|-----------|
 | `PROJECT_NAME` | Repo or package name |
 | `QUALITY_GATES` table | One row per hook in the pre-commit config (and its Makefile / `package.json` fix command). If there's no pre-commit config, list the project's lint, format, type-check and test commands. |
-| `HOOK_CONFIG_PATH` | e.g. `.config/.pre-commit-config.yaml` |
+| `HOOK_CONFIG_PATH` | The hook config from init Step 5, e.g. `.config/.pre-commit-config.yaml` or the repo's own |
 | `PROJECT_PATTERNS` | Section 3 |
 | `RATIFIED_DATE` | Today, `YYYY-MM-DD` |
 
@@ -86,7 +86,7 @@ Then adapt the content:
 - `PROJECT_PATTERNS`: each pattern from Section 3 as **one line** (`Use <x> from <path>; never <y>`). No code blocks: context is paid on every artifact.
 - Keep `context` under roughly 8 KB. OpenSpec drops it entirely over 50 KB.
 
-Then validate: `python3 -c "import yaml,sys; yaml.safe_load(open('openspec/config.yaml'))"` (or `openspec validate` if a change exists).
+Then validate: `uv run --no-project --with pyyaml python -c "import yaml; yaml.safe_load(open('openspec/config.yaml'))"` (or `openspec validate` if a change exists).
 
 ## 6. Report
 

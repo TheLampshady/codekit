@@ -34,7 +34,7 @@ Commit or stash your work first, because `--force` can replace files at the path
 
 ## Branches
 
-SpecKit tracks the active feature through `.specify/feature.json`, **not** the git branch. That lets codekit use Linear's branch names (`jdoe/eng-123-add-login`).
+SpecKit tracks the active feature through `.specify/feature.json`, **not** the git branch. That lets codekit use Linear's branch names (`jdoe/eng-123-add-login`). codekit names each feature folder after its ticket (`specs/eng-123-add-login`), so `sdd-implement` and `linear-docs` find the branch's own feature even when `feature.json` still points at the last ticket you specified.
 
 SpecKit's opt-in **`git` extension** creates numbered branches (`001-feature`) during specify. If it's enabled, `sdd-plan` switches back to the Linear branch afterwards, but leaving the extension disabled is cleaner. If you need it, set a branch template that contains the Linear identifier.
 
@@ -50,12 +50,7 @@ SpecKit runs helper scripts under `.specify/scripts/`. Allow them so you aren't 
 
 ## .gitignore
 
-```gitignore
-.specify/*
-!.specify/memory/
-```
-
-Keep `.specify/memory/` committed: it holds the constitution. Commit `specs/` too if you want plans reviewed alongside the code. Ignore it if plans are personal scratch.
+Commit `.specify/`: teammates need its scripts and templates, and `memory/` holds the constitution. SpecKit writes its own `.specify/.gitignore` for per-checkout state such as `feature.json`. Whether `specs/` is committed depends on Linear: see [Where specs live](#where-specs-live).
 
 ## Constitution
 
@@ -78,4 +73,4 @@ Approved catalogs go in `.specify/extension-catalogs.yml`.
 
 ### Where specs live
 
-codekit doesn't commit SpecKit's feature folders. `/codekit init` adds `specs/` and `.specify/feature.json` to `.gitignore`, so PRs show code only. The files stay local while you work, exactly where SpecKit expects them. At PR time, `sdd-pr` uploads the decision-bearing files (`spec.md`, `plan.md`, `research.md`) to the Linear issue, their copy of record. `tasks.md`, `data-model.md`, `contracts/`, and `quickstart.md` stay local, because the code supersedes them once the feature ships. After merge, the `codekit-docs` Action pulls each ticket's documents and adds its decisions (from `research.md`'s Decision / Rationale / Alternatives considered, the plan's Complexity Tracking, and the spec's Assumptions) to the project's Decision Log in Linear.
+With Linear, codekit doesn't commit SpecKit's feature folders. `/codekit init` adds `specs/` to `.gitignore`, so PRs show code only. Without Linear, `specs/` stays committed, because the repo is its only home. The files stay local while you work, exactly where SpecKit expects them. At PR time, `sdd-pr` uploads the decision-bearing files (`spec.md`, `plan.md`, `research.md`) to the Linear issue, their copy of record. `tasks.md`, `data-model.md`, `contracts/`, and `quickstart.md` stay local, because the code supersedes them once the feature ships. After merge, the `codekit-docs` Action pulls each ticket's documents and adds its decisions (from `research.md`'s Decision / Rationale / Alternatives considered, the plan's Complexity Tracking, and the spec's Assumptions) to the project's Decision Log in Linear.

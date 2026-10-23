@@ -10,13 +10,13 @@ The issue is the spec's copy of record; the folder itself isn't committed.
     python3 linear_docs.py --check
 
 - Run from inside the project; its root is the enclosing git repo.
-- FOLDER defaults to the SpecKit feature in .specify/feature.json, else the
-  OpenSpec change or specs/ folder named after the branch's Linear issue.
+- FOLDER defaults to the OpenSpec change or specs/ folder named after the
+  branch's Linear issue, else the SpecKit feature in .specify/feature.json.
 - The issue defaults to a "**Linear:** ENG-123" line in spec.md, ticket.md, or
   proposal.md, else the identifier in the folder name, else in the branch.
 - The key is LINEAR_API_KEY from the environment. The key is never printed.
-- With --team, or `git config codekit.linear-team`, issues on other teams are
-  refused.
+- With --team, or `git config codekit.linear-team` (else that key in the
+  committed .config/.gitconfig), issues on other teams are refused.
 - Only spec.md, plan.md, research.md (SpecKit, manual) and proposal.md,
   design.md (OpenSpec) are uploaded: the files that carry what was decided and
   why. Tasks, contracts, data models and the rest are build-time only.
@@ -93,6 +93,16 @@ def project_root() -> Path:
     return Path(top) if top else Path.cwd()
 
 
+def codekit_config(root: Path, key: str) -> str:
+    """A codekit.* setting from git config, else from the committed .config/.gitconfig.
+
+    The committed file covers CI and fresh clones, where the include isn't wired.
+    """
+    return git(root, "config", f"codekit.{key}") or git(
+        root, "config", "--file", ".config/.gitconfig", f"codekit.{key}"
+    )
+
+
 def issue_in(name: str) -> str | None:
     match = ID_IN_NAME.search(name)
     return match.group(1).upper() if match else None
@@ -141,7 +151,16 @@ def issue_from_folder(folder: Path) -> str | None:
 
 
 def default_folder(root: Path, branch_issue: str | None) -> Path | None:
-    """SpecKit's active feature, else a folder named after the branch's issue."""
+    """A folder named after the branch's issue, else SpecKit's active feature.
+
+    The branch wins because feature.json names the last feature specified,
+    which is another ticket's after a branch switch.
+    """
+    if branch_issue:
+        for parent in (root / "openspec" / "changes", root / "specs"):
+            for candidate in sorted(parent.glob("*")):
+                if candidate.is_dir() and issue_in(candidate.name) == branch_issue:
+                    return candidate
     feature = root / ".specify" / "feature.json"
     if feature.exists():
         folder = json.loads(feature.read_text(encoding="utf-8")).get(
@@ -149,11 +168,6 @@ def default_folder(root: Path, branch_issue: str | None) -> Path | None:
         )
         if folder:
             return root / folder
-    if branch_issue:
-        for parent in (root / "openspec" / "changes", root / "specs"):
-            for candidate in sorted(parent.glob("*")):
-                if candidate.is_dir() and issue_in(candidate.name) == branch_issue:
-                    return candidate
     return None
 
 
@@ -217,6 +231,9 @@ def graphql(key: str, query: str, variables: dict[str, Any]) -> dict[str, Any]:
     except error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
         raise SystemExit(f"Linear returned {exc.code}: {detail}") from exc
+    except (error.URLError, TimeoutError) as exc:
+        reason = getattr(exc, "reason", exc)
+        raise SystemExit(f"Can't reach Linear: {reason}") from exc
     if payload.get("errors"):
         raise SystemExit(
             "Linear error: "
@@ -329,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     issue = graphql(key, ISSUE_QUERY, {"id": identifier})["issue"]
-    team = (args.team or git(root, "config", "codekit.linear-team")).upper()
+    team = (args.team or codekit_config(root, "linear-team")).upper()
     issue_team = ((issue.get("team") or {}).get("key") or "").upper()
     if team and issue_team != team:
         print(f"{identifier} is on team {issue_team}, not {team}; nothing changed.")
@@ -349,7 +366,10 @@ def main(argv: list[str] | None = None) -> int:
 
     deletes = [a for a in actions if a.kind == "delete"]
     if deletes and not args.yes:
-        answer = input(f"Delete {len(deletes)} document(s) from Linear? [y/N] ")
+        try:
+            answer = input(f"Delete {len(deletes)} document(s) from Linear? [y/N] ")
+        except EOFError:
+            answer = ""
         if answer.strip().lower() not in ("y", "yes"):
             print("Stopped: nothing written.")
             return 1

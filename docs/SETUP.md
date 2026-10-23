@@ -55,7 +55,7 @@ With SpecKit or no framework, specs aren't committed: the Linear issue holds the
    ```bash
    export LINEAR_API_KEY="lin_api_..."
    ```
-3. Open a new shell. The skill runs the script through `bash -lc`, so the key is picked up even in a session that started before you added it.
+3. Open a new shell. If the agent's session started before you added the key, the skill runs the script through your shell as a login, interactive shell (`$SHELL -lic`), so the key is still picked up. That shell gets no input, so a profile that prompts for something just skips it.
 
 4. Verify it: `/codekit init` and `/codekit update` both check the key and report, for example:
    ```
@@ -83,10 +83,10 @@ In the project repo, run:
 ```
 
 It will:
-1. **Ask whether the repo uses Linear**, then **check prerequisites.** These are required, and init stops until they're fixed: `gh` installed and logged in, `uv` installed, and (only if you use Linear) the Linear MCP connected. It runs every check first and reports them together. Also checked, without stopping: a GitHub remote, `LINEAR_API_KEY` (set and accepted by Linear), and `python3`.
+1. **Ask whether the repo uses Linear** (unless `.config/.gitconfig` already says), then **check prerequisites.** These are required, and init stops until they're fixed: `gh` installed and logged in, `uv` installed, and (only if you use Linear) the Linear MCP connected. It runs every check first and reports them together. Also checked, without stopping: a GitHub remote, `LINEAR_API_KEY` (set and accepted by Linear), and `python3`.
 2. **Set up an SDD framework.** If the repo has none, it asks you to pick SpecKit, OpenSpec, or none. Then it installs the CLI if needed (`specify` through uv, `openspec` through npm) and runs `specify init` / `openspec init` non-interactively for your agent. If you pick none, `sdd-plan` writes plans by hand, and you can add a framework later by rerunning init.
-3. **Ask for settings:** the base branch, the Linear team, the app's Linear project (which you create in Linear first), and (optionally) reviewers.
-4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist. With SpecKit or no framework, it gitignores `specs/` and `.specify/feature.json`, since the Linear issue holds the spec. codekit's own scratch files (review reports, working copies) go in the system temp folder, never the repo.
+3. **Ask for settings** that `.config/.gitconfig` doesn't already have: the base branch, the Linear team, the app's Linear project (which you create in Linear first), and (optionally) reviewers.
+4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist. If the repo already has a root `.pre-commit-config.yaml` or another hook manager (husky, lefthook), it uses that instead. With Linear and SpecKit or no framework, it gitignores `specs/`, since the Linear issue holds the spec. codekit's own scratch files (review reports, working copies) go in the system temp folder, never the repo.
 5. **Wire them in** with `git config --local --add include.path ../.config/.gitconfig`, and install pre-commit.
 6. **Write the SDD context:** `.specify/memory/constitution.md` or `openspec/config.yaml`, built from codekit's constitution plus the Project Patterns found in your code. A file you've already filled in is never replaced.
 7. **Offer the product docs Action** (if you picked a Linear project). See [Product docs Action](#product-docs-action) below.
@@ -120,7 +120,7 @@ Run this after updating the plugin, or whenever the tools feel stale. It will:
 2. **Upgrade the tools:** `uv self update`, `specify self upgrade`, `npm install -g @fission-ai/openspec@latest`, `uv tool upgrade pre-commit`, and gh through its package manager. It shows the commands first and runs them on your yes. Tools the repo doesn't use are skipped.
 3. **Refresh the framework's project files:** `specify integration upgrade`, which never touches your constitution, or `openspec update`, which leaves `config.yaml` and specs alone. If SpecKit finds files you've edited, it asks before overwriting.
 4. **Optionally bump pre-commit hook versions** (`pre-commit autoupdate`), and show the diff.
-5. **Re-sync codekit's setup:** missing git wiring, new `[codekit]` config keys, `.gitignore` lines, principles a newer codekit added to its constitution (appended, never rewritten), and Project Patterns whose cited files have moved.
+5. **Re-sync codekit's setup:** missing git wiring and installed files, new `[codekit]` config keys, `.gitignore` lines, principles a newer codekit added to its constitution (appended, never rewritten), and Project Patterns whose cited files have moved.
 
 It ends with a before → after version table and the changed files. Nothing is committed for you.
 

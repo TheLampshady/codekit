@@ -23,7 +23,14 @@ import re
 import sys
 from pathlib import Path
 
-from linear_docs import MISSING_KEY, api_key, git, graphql, project_root, same_words
+from linear_docs import (
+    MISSING_KEY,
+    api_key,
+    codekit_config,
+    graphql,
+    project_root,
+    same_words,
+)
 
 HEADING = re.compile(r"^#\s+(.+?)\s*$", re.MULTILINE)
 
@@ -111,12 +118,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = project_root()
-    # The committed file covers CI and fresh clones, where the include isn't wired.
-    project_id = (
-        args.project
-        or git(root, "config", "codekit.linear-project")
-        or git(root, "config", "--file", ".config/.gitconfig", "codekit.linear-project")
-    )
+    project_id = args.project or codekit_config(root, "linear-project")
     if not project_id:
         print(
             "No project: pass --project or set `git config codekit.linear-project`.",

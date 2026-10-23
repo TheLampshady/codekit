@@ -37,10 +37,11 @@ For **None**: note that Step 6 will be skipped, and move on.
 
 ## 3. Gather settings
 
-Ask these in one message, with the detected defaults filled in:
+The prerequisites already settled `codekit.linear` (`true` or `false`). If `.config/.gitconfig` exists (a re-run, or a teammate's clone), read its other keys with `git config -f .config/.gitconfig --get codekit.<key>` and ask only for the ones it lacks. If it has them all, ask nothing.
+
+Ask in one message, with the detected defaults filled in. Without Linear, skip questions 2 and 3.
 
 1. **Base branch:** detect it from `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, else `origin/HEAD`, else `main`.
-   The answer from the prerequisites, *"Use Linear with this repo?"*, is stored as `codekit.linear` (`true` or `false`). With **no**, skip questions 2 and 3.
 2. **Linear team key:** call `list_teams` and offer the teams. This is used by `sdd-plan next`. Optional.
 3. **Linear project:** the project this app's tickets and docs live in. Call `list_projects` (scoped to the team from question 2, if one was picked), offer them by name, and store the chosen project's **ID**. The user creates the project in Linear; never create one. If they don't have it yet, leave it blank: `/codekit update` asks again later. Optional.
 4. **Default reviewers:** GitHub handles, comma-separated. Optional, and CODEOWNERS covers it if the repo has one.
@@ -51,19 +52,14 @@ Run `mkdir -p .config`. For each file, **skip it if the destination exists** and
 
 | Destination | Source |
 |-------------|--------|
-| `.config/.gitconfig` | [../resources/.gitconfig](../resources/.gitconfig), with the placeholders filled from Step 3. Delete any line whose value the user left blank. |
+| `.config/.gitconfig` | [../resources/.gitconfig](../resources/.gitconfig), with the placeholders filled from Step 3. Leave a key the user skipped empty (`reviewers =`), so `/codekit update` knows it was skipped on purpose. |
 | `.config/.commit-message-template` | [../../sdd-commit/resources/.commit-message-template](../../sdd-commit/resources/.commit-message-template) |
-| `.config/.pre-commit-config.yaml` | [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml) |
+| `.config/.pre-commit-config.yaml` | [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml). Skip it if the repo already has hooks: a root `.pre-commit-config.yaml`, or another hook manager (`git config core.hooksPath` is set, or `.husky/` or `lefthook.yml` exists). Those are the repo's quality gates, and codekit uses them as they are. |
 
 If `.config/.gitconfig` already exists, offer to append whichever `[codekit]` keys it lacks. Append them; never rewrite the file.
 
-**`.gitignore`:** only when the repo uses Linear and the framework is SpecKit or none, create it if it's missing and append each of these lines that isn't already there. Specs aren't committed: they live locally while you build, and the Linear issue holds the copy of record (`linear-docs`), so PRs show code only. **Without Linear, don't add them:** the repo is the specs' only home, so they stay committed.
-```
-specs/
-.specify/feature.json
-```
+**`.gitignore`:** only when the repo uses Linear and the framework is SpecKit or none, create it if it's missing and append `specs/` if it isn't already there. Specs aren't committed: they live locally while you build, and the Linear issue holds the copy of record (`linear-docs`), so PRs show code only. **Without Linear, don't add it:** the repo is the specs' only home, so they stay committed.
 If `git ls-files specs` lists files, they're already tracked, and `.gitignore` won't untrack them. Offer `git rm -r --cached specs`, which stages their removal from the repo but leaves them on disk. Never run it without a yes. OpenSpec keeps `openspec/` committed, because its living spec is part of the repo by design.
-If SpecKit or OpenSpec is present, offer the extra entries from that framework's guide in [docs/extensions/](../../../docs/extensions/).
 
 ## 5. Wire into git
 
@@ -72,7 +68,7 @@ If SpecKit or OpenSpec is present, offer the extra entries from that framework's
    git config --local --add include.path ../.config/.gitconfig
    ```
    The path is relative to `.git/`, so it resolves to `<repo>/.config/.gitconfig`. Committing `.config/` shares these settings with the team. Each clone runs this line once, which is what this skill and `make setup`-style targets are for.
-2. **Pre-commit:** if `.git/hooks/pre-commit` doesn't exist, run `uv tool install pre-commit` (skip it if `pre-commit --version` already works), then `pre-commit install --config .config/.pre-commit-config.yaml`.
+2. **Pre-commit:** the hook config is `.config/.pre-commit-config.yaml`, or the root `.pre-commit-config.yaml` when Step 4 skipped ours for it. With another hook manager, leave the hooks to it. Otherwise, if the file at `git rev-parse --git-path hooks/pre-commit` doesn't exist, run `uv tool install pre-commit` (skip it if `pre-commit --version` already works), then `pre-commit install --config <hook config>`.
 3. **Project setup scripts:** if the repo has a `Makefile` / `justfile` `setup` target or a `scripts/setup*` script, offer to add the `include.path` line and the pre-commit install to it so new clones get them automatically. Show the exact diff and wait for a yes.
 
 ## 6. SDD context: constitution / OpenSpec config
@@ -85,13 +81,13 @@ Only if SpecKit or OpenSpec is present. Follow [sdd-context.md](sdd-context.md).
 
 ## 7. Product docs Action
 
-Only if the repo uses Linear and a project was chosen in Step 3. Ask:
+Only if the repo uses Linear and `codekit.linear-project` is set (Step 3). If `.github/workflows/codekit-docs.yml` already exists, don't ask: go straight to the secrets check (item 2). Otherwise ask:
 
 > Install the `codekit-docs` GitHub Action? After every merge it updates the app's **Product Map**, **Glossary**, and **Decision Log** (reference only) in your Linear project, so PMs can read about and ask about the app without GitHub access. It runs Claude Code on GitHub, so it needs a Claude Pro or Max subscription (or an Anthropic API key) even if your team uses Antigravity, plus two repository secrets.
 
 On a yes:
 
-1. **Workflow:** if `.github/workflows/codekit-docs.yml` exists, skip it. Otherwise `mkdir -p .github/workflows` and write it from [../resources/codekit-docs.yml](../resources/codekit-docs.yml), with `BASE_BRANCH` replaced by the base branch from Step 3.
+1. **Workflow:** `mkdir -p .github/workflows` and write it from [../resources/codekit-docs.yml](../resources/codekit-docs.yml), with `BASE_BRANCH` replaced by the base branch from Step 3.
 2. **Secrets:** run `gh secret list` (it shows names only). For each of these that's missing, give the user the command to run **in their own terminal**, not through `!`. Never ask for, read, or handle a secret's value yourself.
 
    | Secret | How the user sets it |

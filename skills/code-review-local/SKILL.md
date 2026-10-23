@@ -21,21 +21,23 @@ In Claude Code, `/code-review-local` runs as an isolated subagent that hasn't se
 
 1. **Base branch:** use the one passed as an argument (`$ARGUMENTS`) or named by the caller, else `git config codekit.basebranch`, else `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), else `main`.
 2. `git fetch origin <base-branch>`. If the fetch fails (offline), compare against the local ref and say so.
-3. Gather the diff:
+3. Gather the diff, starting with `git diff --stat origin/<base-branch>...HEAD` to see its shape:
    - Committed: `git diff origin/<base-branch>...HEAD`
    - Uncommitted: `git diff HEAD`
    - Untracked: `git ls-files --others --exclude-standard`. Read these files in full.
+
+   Leave lockfiles and generated files out of the full diffs and reads, with exclude pathspecs such as `-- . ':(exclude)*.lock' ':(exclude)package-lock.json' ':(exclude)pnpm-lock.yaml' ':(exclude)go.sum'`. A lockfile diff can run to thousands of lines that a reviewer can't act on. Note in the report that they changed.
 4. If the diff is empty, say so and stop.
 
 ### 2. Load intent
 
-Find what the change is *supposed* to do, using the first source that exists:
+Find what the change is *supposed* to do. The spec folder is the one whose name contains the branch's ticket ID or slug, looked for in `specs/`, then `openspec/changes/`, then `openspec/changes/archive/` (where `sdd-pr` moves an archived change). Failing that, in a SpecKit repo, use the folder `.specify/feature.json` names. It holds the last feature specified, which may be another ticket's, so the report names the spec it used.
 
-1. **SpecKit:** `spec.md`, `plan.md`, `tasks.md` in the feature directory named by `.specify/feature.json`
-2. **OpenSpec:** `openspec/changes/<change-id>/` (proposal, design, tasks, spec deltas)
-3. **Manual:** `specs/<ticket>/ticket.md` and `plan.md`
+- **SpecKit:** `spec.md`, `plan.md`, `tasks.md`
+- **OpenSpec:** proposal, design, tasks, spec deltas
+- **Manual:** `ticket.md` and `plan.md`
 
-Then load the conventions: `docs/FOUNDATIONS.md`, `docs/PRINCIPLES.md`, `CONTRIBUTING.md`, and `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`.
+Then load the conventions: the constitution (`.specify/memory/constitution.md`, or the `context` and `rules` in `openspec/config.yaml`), `docs/FOUNDATIONS.md`, `docs/PRINCIPLES.md`, `CONTRIBUTING.md`, and `CLAUDE.md` / `AGENTS.md` / `GEMINI.md`. The constitution holds the project's principles and its Project Patterns, the "use X, never Y" rules for this codebase.
 
 If there's no spec, do a general quality review and say so in the report.
 
@@ -47,7 +49,7 @@ Read each changed file in full where the diff alone lacks context. Check:
 - **Correctness:** logic errors, unhandled edge cases, error paths, concurrency, off-by-ones.
 - **Security:** committed secrets, injection, unsafe deserialization, missing authorization checks, logging sensitive data.
 - **Tests:** new behavior has tests, and the tests assert the behavior rather than the implementation.
-- **Conventions:** the change matches the documented foundations and the surrounding code. Flag where it reinvents something a foundation already provides.
+- **Conventions:** the change follows the constitution's principles and Project Patterns, the documented foundations, and the surrounding code. Flag where it reinvents something a foundation or pattern already provides.
 - **Scope:** unrelated changes, debug leftovers, commented-out code.
 
 Severity:
