@@ -11,7 +11,7 @@ argument-hint: "[spec folder | ENG-123] [--pull] [--dry-run] [--prune] [--yes]"
 
 # Linear Docs
 
-Syncs a spec folder to its Linear issue with [scripts/linear_docs.py](scripts/linear_docs.py). In SpecKit and no-framework projects the spec folder is gitignored and stays local while you work. `sdd-pr` uploads it at PR time, making the issue its copy of record, and the `codekit-docs` Action reads it after merge to build the Decision Log. The script reads the files from disk and calls Linear's GraphQL API itself. That keeps the documents identical to the files, and a sync costs a few hundred tokens instead of the size of the files. When this skill applies, never upload spec files through the Linear MCP (`save_document`): that sends every byte through the model.
+Syncs a spec folder to its Linear issue with [scripts/linear_docs.py](scripts/linear_docs.py). In SpecKit and no-framework projects the spec folder is gitignored and stays local while you work. `sdd-push` uploads it at PR time, making the issue its copy of record, and the `codekit-docs` Action reads it after merge to build the Decision Log. The script reads the files from disk and calls Linear's GraphQL API itself. That keeps the documents identical to the files, and a sync costs a few hundred tokens instead of the size of the files. When this skill applies, never upload spec files through the Linear MCP (`save_document`): that sends every byte through the model.
 
 **Script path:** `scripts/linear_docs.py` lives in this skill's directory, the folder containing this `SKILL.md`, not the user's project. Call it by absolute path and run it **from the project root**, because the script finds the project from the current git repo.
 

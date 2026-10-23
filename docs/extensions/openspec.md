@@ -6,11 +6,11 @@
 |---------------|---------------|
 | `/sdd-plan` | `/opsx:explore` → `/opsx:propose <change-id>` |
 | `/sdd-implement` | `/opsx:apply <change-id>` |
-| `/sdd-pr` | `/opsx:archive <change-id>`, in the feature's PR after the rebase |
+| `/sdd-push` | `/opsx:archive <change-id>`, in the feature's PR after the rebase |
 
 codekit names changes `<ticket-id>-<slug>` (e.g. `eng-123-add-login`), so `openspec list` maps back to Linear at a glance.
 
-Unlike SpecKit projects, where codekit keeps specs out of the repo, OpenSpec's living spec (`openspec/specs/`) is committed by design, so OpenSpec PRs include spec text. `sdd-pr` still uploads `proposal.md` and `design.md` to the issue, so the `codekit-docs` Action can add the change's decisions to the Decision Log.
+Unlike SpecKit projects, where codekit keeps specs out of the repo, OpenSpec's living spec (`openspec/specs/`) is committed by design, so OpenSpec PRs include spec text. `sdd-push` still uploads `proposal.md` and `design.md` to the issue, so the `codekit-docs` Action can add the change's decisions to the Decision Log.
 
 ## Install
 

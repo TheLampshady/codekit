@@ -1,22 +1,25 @@
-# Installed by `/codekit init`. Keeps this app's Product Map, Decision Log,
-# and Glossary current in Linear, for PMs who don't read the code. The
-# Decision Log is built from the spec documents on each merged ticket's issue.
+# Installed by `/codekit init`. Keeps this app's project docs (Product Map,
+# Decision Log, and Glossary) current in Linear, for PMs who don't read the
+# code. The Decision Log is built from the spec documents on each merged
+# ticket's issue.
 #
-# Runs after every push to BASE_BRANCH (a merged PR) and updates only what the
-# new commits changed. Run it by hand from the Actions tab with "full" checked
-# to rebuild the map from scratch.
+# Runs after each PR merged into BASE_BRANCH and updates only what the new
+# commits changed. claude-code-action doesn't accept `push` events, so a direct
+# push to BASE_BRANCH is picked up by the next merge's run. Run it by hand from
+# the Actions tab with "full" checked to rebuild the map from scratch.
 #
 # Needs two repository secrets (Settings > Secrets and variables > Actions):
 #   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Claude Pro or Max)
 #   LINEAR_API_KEY           Linear: Settings > Security & access > Personal API keys
 # and `codekit.linear-project` in .config/.gitconfig.
 
-name: codekit docs
+name: codekit project docs
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [BASE_BRANCH]
-    # A merge that only touches these can't change what users see, so no runner
+    # A PR that only touches these can't change what users see, so no runner
     # starts. Nothing is lost: the next run diffs from the last synced commit.
     # Edit the list to fit the project.
     paths-ignore:
@@ -56,11 +59,16 @@ permissions:
 
 jobs:
   docs:
+    # A closed PR that wasn't merged has nothing to sync.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      # Check out the base branch itself, not the PR's merge ref: the map
+      # records the commit it synced to, and that commit must be on the branch.
+      - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
 
       - uses: anthropics/claude-code-action@v1
@@ -69,9 +77,12 @@ jobs:
           TMPDIR: ${{ runner.temp }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The job only reads the repo, so the workflow's own token is enough
+          # (no Claude GitHub App or `id-token: write` needed).
+          github_token: ${{ github.token }}
           plugin_marketplaces: https://github.com/TheLampshady/codekit.git
           plugins: codekit@codekit-marketplace
-          prompt: /codekit:codekit docs --ci ${{ inputs.full && '--full' || '' }}
+          prompt: /codekit:project-docs --ci ${{ inputs.full && '--full' || '' }}
           claude_args: >-
             --add-dir ${{ runner.temp }}
-            --allowedTools "Read,Glob,Grep,Write,Bash(git log *),Bash(git diff *),Bash(git rev-parse *),Bash(git merge-base *),Bash(git ls-files *),Bash(python3 *)"
+            --allowedTools "Read,Glob,Grep,Write,Bash(git log *),Bash(git diff *),Bash(git rev-parse *),Bash(git merge-base *),Bash(git ls-files *),Bash(git ls-tree *),Bash(git show *),Bash(python3 *)"

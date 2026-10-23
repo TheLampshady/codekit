@@ -14,16 +14,11 @@ gh auth login            # choose GitHub.com, HTTPS, and authenticate in the bro
 gh auth status           # verify
 ```
 
-`sdd-pr` uses `gh` for everything on GitHub: repo defaults, PR create/edit/view. No token is stored by codekit.
+`sdd-push` uses `gh` for everything on GitHub: repo defaults, PR create/edit/view. No token is stored by codekit.
 
 ### Plugin
 
-| Where | Install |
-|-------|---------|
-| Claude Code (session) | `/plugin install codekit --marketplace TheLampshady/codekit`, then choose **user scope** |
-| Claude Code (shell) | `claude plugin install codekit --marketplace TheLampshady/codekit` |
-| Antigravity CLI | `agy plugin install https://github.com/TheLampshady/codekit` |
-| Antigravity IDE | `git clone https://github.com/TheLampshady/codekit.git ~/.gemini/config/plugins/codekit`, then restart. The IDE loads plugins from that folder and has no marketplace. |
+Install with the commands in the [README](../README.md#install). Pick **user scope** in Claude Code to have it in every project.
 
 Check it's installed: `claude plugin list` or `agy plugin list`. In Claude Code, typing `/codekit:` lists the skills.
 
@@ -89,15 +84,17 @@ It will:
 4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist. If the repo already has a root `.pre-commit-config.yaml` or another hook manager (husky, lefthook), it uses that instead. With Linear and SpecKit or no framework, it gitignores `specs/`, since the Linear issue holds the spec. codekit's own scratch files (review reports, working copies) go in the system temp folder, never the repo.
 5. **Wire them in** with `git config --local --add include.path ../.config/.gitconfig`, and install pre-commit.
 6. **Write the SDD context:** `.specify/memory/constitution.md` or `openspec/config.yaml`, built from codekit's constitution plus the Project Patterns found in your code. A file you've already filled in is never replaced.
-7. **Offer the product docs Action** (if you picked a Linear project). See [Product docs Action](#product-docs-action) below.
+7. **Set up the project docs.** It offers to build them now, which also adds the decisions from specs already merged to the Decision Log. With Linear (and a project picked) it offers the Action that keeps them current. Without Linear, `sdd-push` keeps them current and a pre-push hook warns when they fall behind. See [Project docs](#project-docs) below.
 
-Commit `.config/`, `.gitignore`, the framework files (including the constitution or config), and `.github/workflows/codekit-docs.yml` if installed, so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
+Commit `.config/`, `.gitignore`, the framework files (including the constitution or config), `docs/project/` if built, and `.github/workflows/codekit-docs.yml` if installed, so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
 
-### Product docs Action
+### Project docs
+
+Without Linear, the project docs are files in `docs/project/`, and `sdd-push` updates them inside each PR. Nothing else to set up. The rest of this section is for Linear.
 
 `.github/workflows/codekit-docs.yml` keeps three documents in your Linear project current: the **Product Map** (what the app does and what its data and interfaces support, in product language, each entry linked to code), the **Decision Log** (what was decided and why, from each merged ticket's spec documents), and the **Glossary** (the team's vocabulary, which PMs edit in Linear). PMs read them, ask Linear Agent about the app, and file tickets in the same project. None of that needs a GitHub seat.
 
-How it works: after every push to the base branch, GitHub starts a runner, checks out the repo, installs Claude Code and this plugin, and runs `/codekit:codekit docs --ci`. That pulls the current documents from Linear, updates the map for what the new commits changed, adds each merged ticket's decisions from its issue's spec documents, and pushes them back. The map records the commit it was last synced to, so a skipped or failed run is caught up by the next one. A merge that only touches docs, tests, CI config, or lockfiles doesn't start the workflow at all (its `paths-ignore` list, which you can edit). Those changes are covered by the next run. To rebuild from scratch, open the repo's **Actions** tab, pick **codekit docs**, choose **Run workflow**, and check **full**.
+How it works: after every PR merged into the base branch, GitHub starts a runner, checks out the repo, installs Claude Code and this plugin, and runs `/codekit:project-docs --ci`. That pulls the current documents from Linear, updates the map for what the new commits changed, adds each merged ticket's decisions from its issue's spec documents, and pushes them back. The map records the commit it was last synced to, so a skipped or failed run is caught up by the next one. A PR that only touches docs, tests, CI config, or lockfiles doesn't start the workflow at all (its `paths-ignore` list, which you can edit). Those changes are covered by the next run. To rebuild from scratch, open the repo's **Actions** tab, pick **codekit project docs**, choose **Run workflow**, and check **full**.
 
 It needs two repository secrets. Set them once in your own terminal (init tells you which are missing):
 
@@ -130,6 +127,6 @@ It ends with a before → after version table and the changed files. Nothing is 
 |---------|-----|
 | Skills don't appear | Claude: `claude plugin list`, then `/reload-plugins`. Antigravity CLI: `agy plugin list`. Antigravity IDE: check that `~/.gemini/config/plugins/codekit/plugin.json` exists, then restart. |
 | "Linear tools not available" | The MCP isn't authenticated. Run `/mcp` (Claude) or open the MCP panel (Antigravity). |
-| `sdd-pr`: "gh: not logged in" | `gh auth login` |
+| `sdd-push`: "gh: not logged in" | `gh auth login` |
 | Issue didn't move to In Review | codekit looks for a *started*-type state with "review" in its name. If the team has none, it only links the PR. Add one in Linear, or let the GitHub integration's automations move it. Draft PRs never move it. |
 | SpecKit created a `001-…` branch | Its optional `git` extension is enabled. See [extensions/speckit.md](extensions/speckit.md#branches). |

@@ -31,7 +31,7 @@ In Claude Code, `/code-review-local` runs as an isolated subagent that hasn't se
 
 ### 2. Load intent
 
-Find what the change is *supposed* to do. The spec folder is the one whose name contains the branch's ticket ID or slug, looked for in `specs/`, then `openspec/changes/`, then `openspec/changes/archive/` (where `sdd-pr` moves an archived change). Failing that, in a SpecKit repo, use the folder `.specify/feature.json` names. It holds the last feature specified, which may be another ticket's, so the report names the spec it used.
+Find what the change is *supposed* to do. The spec folder is the one whose name contains the branch's ticket ID or slug, looked for in `specs/`, then `openspec/changes/`, then `openspec/changes/archive/` (where `sdd-push` moves an archived change). Failing that, in a SpecKit repo, use the folder `.specify/feature.json` names. It holds the last feature specified, which may be another ticket's, so the report names the spec it used.
 
 - **SpecKit:** `spec.md`, `plan.md`, `tasks.md`
 - **OpenSpec:** proposal, design, tasks, spec deltas

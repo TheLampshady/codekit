@@ -39,7 +39,7 @@ If a hook or config blocks it, show the error verbatim and ask before working ar
    - **Trivial** (import order, formatting, both sides adding the same line): propose a resolution and ask yes/no.
    - **Semantic** (the same logic changed differently, a signature changed): stop. Show both versions, say what each does, and ask which to keep or whether to combine them.
    - **Structural** (deleted on one side, modified on the other; moved files): always ask. Never auto-resolve.
-   - **Lockfiles / generated files** (`package-lock.json`, `uv.lock`, `poetry.lock`, `Cargo.lock`, ...): offer to take the base branch's version and regenerate it with the project's install command.
+   - **Lockfiles / generated files** (`package-lock.json`, `uv.lock`, `poetry.lock`, `Cargo.lock`, ..., and codekit's `docs/project/`): offer to take the base branch's version and regenerate it, with the project's install command or, for `docs/project/`, by `sdd-push`'s project docs step after the rebase.
 3. Apply the agreed resolution, check that no markers remain in the file (`grep -n '^<<<<<<<\|^=======\|^>>>>>>>' <file>`), then `git add <file>`.
 4. When the step is fully resolved, continue the operation in progress, keeping its message: `GIT_EDITOR=true git <rebase|merge|cherry-pick> --continue`. A conflicted `git stash pop` has nothing to continue, and git keeps the stash: once every file is resolved, run `git stash drop`.
 5. Repeat until the operation completes.
@@ -54,13 +54,13 @@ Offer these at any conflict:
 ## Completion
 
 1. Show `git log --oneline -10` to confirm the history looks right.
-2. **Check the result.** If any conflict was resolved by hand, run the project's tests and linters (whatever its `Makefile`, `justfile`, `package.json`, `pyproject.toml`, or CI config defines). A resolution can be clean as text and still break the build, e.g. when the base branch renamed a function this branch calls. If they fail, show the output verbatim: the branch isn't ready to push, so this run hasn't completed cleanly, and `sdd-pr` stops too.
+2. **Check the result.** If any conflict was resolved by hand, run the project's tests and linters (whatever its `Makefile`, `justfile`, `package.json`, `pyproject.toml`, or CI config defines). A resolution can be clean as text and still break the build, e.g. when the base branch renamed a function this branch calls. If they fail, show the output verbatim: the branch isn't ready to push, so this run hasn't completed cleanly, and `sdd-push` stops too.
 3. If you stashed in preflight, ask before running `git stash pop`, and handle any conflicts it produces with the same loop.
-4. If the branch was already pushed, note that the next push needs `--force-with-lease`. `sdd-pr` handles this.
+4. If the branch was already pushed, note that the next push needs `--force-with-lease`. `sdd-push` handles this.
 
 ## Never
 
 - Continue a rebase, merge, or cherry-pick while conflict markers remain.
 - Use `checkout --ours` / `--theirs` without confirmation, because each silently discards one side.
 - Amend, squash, or reorder commits unasked.
-- Push, and especially force-push. Pushing belongs to `sdd-pr` or the user.
+- Push, and especially force-push. Pushing belongs to `sdd-push` or the user.

@@ -47,7 +47,7 @@ If any Linear call fails with an auth or connection error, follow [Linear MCP er
 
 1. `git status --porcelain`. If the tree is dirty, ask whether to stash, commit, or carry the changes onto the new branch.
 2. Resolve `<base-branch>` (see [Base branch](#base-branch)) and `git fetch origin <base-branch>`. With no `origin` remote, skip the fetch and use the local `<base-branch>` below.
-3. If `<branch-name>` exists locally: `git checkout <branch-name>`. If it only exists on the remote: `git checkout --track origin/<branch-name>`. Otherwise: `git checkout --no-track -b <branch-name> origin/<base-branch>`. `--no-track` stops git from making the base branch its upstream; `sdd-pr` sets the real one on the first push.
+3. If `<branch-name>` exists locally: `git checkout <branch-name>`. If it only exists on the remote: `git checkout --track origin/<branch-name>`. Otherwise: `git checkout --no-track -b <branch-name> origin/<base-branch>`. `--no-track` stops git from making the base branch its upstream; `sdd-push` sets the real one on the first push.
 
 Using Linear's `gitBranchName` verbatim is deliberate: Linear's GitHub integration links any branch or PR that contains the identifier, and it moves the issue through its workflow automatically.
 

@@ -54,12 +54,12 @@ Run `mkdir -p .config`. For each file, **skip it if the destination exists** and
 |-------------|--------|
 | `.config/.gitconfig` | [../resources/.gitconfig](../resources/.gitconfig), with the placeholders filled from Step 3. Leave a key the user skipped empty (`reviewers =`), so `/codekit update` knows it was skipped on purpose. |
 | `.config/.commit-message-template` | [../../sdd-commit/resources/.commit-message-template](../../sdd-commit/resources/.commit-message-template) |
-| `.config/.pre-commit-config.yaml` | [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml). Skip it if the repo already has hooks: a root `.pre-commit-config.yaml`, or another hook manager (`git config core.hooksPath` is set, or `.husky/` or `lefthook.yml` exists). Those are the repo's quality gates, and codekit uses them as they are. |
+| `.config/.pre-commit-config.yaml` | [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml). Skip it if the repo already has hooks: a root `.pre-commit-config.yaml`, or another hook manager (`git config core.hooksPath` is set, or `.husky/` or `lefthook.yml` exists). Those are the repo's quality gates, and codekit uses them as they are. With Linear, leave out the `project-docs-behind` block: the Action keeps the project docs current instead. |
 
 If `.config/.gitconfig` already exists, offer to append whichever `[codekit]` keys it lacks. Append them; never rewrite the file.
 
 **`.gitignore`:** only when the repo uses Linear and the framework is SpecKit or none, create it if it's missing and append `specs/` if it isn't already there. Specs aren't committed: they live locally while you build, and the Linear issue holds the copy of record (`linear-docs`), so PRs show code only. **Without Linear, don't add it:** the repo is the specs' only home, so they stay committed.
-If `git ls-files specs` lists files, they're already tracked, and `.gitignore` won't untrack them. Offer `git rm -r --cached specs`, which stages their removal from the repo but leaves them on disk. Never run it without a yes. OpenSpec keeps `openspec/` committed, because its living spec is part of the repo by design.
+If `git ls-files specs` lists files, they're already tracked, and `.gitignore` won't untrack them. Offer `git rm -r --cached specs`, which stages their removal from the repo but leaves them on disk. Never run it without a yes. Their decisions aren't lost: the first project docs build (Step 7) reads merged specs from git history. OpenSpec keeps `openspec/` committed, because its living spec is part of the repo by design.
 
 ## 5. Wire into git
 
@@ -68,7 +68,7 @@ If `git ls-files specs` lists files, they're already tracked, and `.gitignore` w
    git config --local --add include.path ../.config/.gitconfig
    ```
    The path is relative to `.git/`, so it resolves to `<repo>/.config/.gitconfig`. Committing `.config/` shares these settings with the team. Each clone runs this line once, which is what this skill and `make setup`-style targets are for.
-2. **Pre-commit:** the hook config is `.config/.pre-commit-config.yaml`, or the root `.pre-commit-config.yaml` when Step 4 skipped ours for it. With another hook manager, leave the hooks to it. Otherwise, if the file at `git rev-parse --git-path hooks/pre-commit` doesn't exist, run `uv tool install pre-commit` (skip it if `pre-commit --version` already works), then `pre-commit install --config <hook config>`.
+2. **Pre-commit:** the hook config is `.config/.pre-commit-config.yaml`, or the root `.pre-commit-config.yaml` when Step 4 skipped ours for it. With another hook manager, leave the hooks to it. Otherwise, if the file at `git rev-parse --git-path hooks/pre-commit` doesn't exist, run `uv tool install pre-commit` (skip it if `pre-commit --version` already works), then `pre-commit install --config <hook config>`. Without Linear, check `hooks/pre-push` too and add `--hook-type pre-commit --hook-type pre-push`, which installs the project docs warning.
 3. **Project setup scripts:** if the repo has a `Makefile` / `justfile` `setup` target or a `scripts/setup*` script, offer to add the `include.path` line and the pre-commit install to it so new clones get them automatically. Show the exact diff and wait for a yes.
 
 ## 6. SDD context: constitution / OpenSpec config
@@ -79,25 +79,32 @@ Only if SpecKit or OpenSpec is present. Follow [sdd-context.md](sdd-context.md).
 3. SpecKit: run `/speckit.constitution` (or the `speckit-constitution` skill) with the filled baseline, which writes `.specify/memory/constitution.md`. OpenSpec: fill `openspec/config.yaml` from [../resources/openspec-config.yaml](../resources/openspec-config.yaml) (condensed `context`, plus `rules` per artifact).
 4. Treat an unfilled framework template as missing. **Never replace** a filled-in constitution or config: offer to append only the missing principles.
 
-## 7. Product docs Action
+## 7. Project docs
 
-Only if the repo uses Linear and `codekit.linear-project` is set (Step 3). If `.github/workflows/codekit-docs.yml` already exists, don't ask: go straight to the secrets check (item 2). Otherwise ask:
+The [project docs](../../project-docs/SKILL.md) are the Product Map, Decision Log, and Glossary, kept current for people who don't read the code. With Linear they're documents in the Linear project, so skip this step if `codekit.linear-project` isn't set (Step 3) and say `/codekit update` offers it once it is. Without Linear they're files in `docs/project/`.
 
-> Install the `codekit-docs` GitHub Action? After every merge it updates the app's **Product Map**, **Glossary**, and **Decision Log** (reference only) in your Linear project, so PMs can read about and ask about the app without GitHub access. It runs Claude Code on GitHub, so it needs a Claude Pro or Max subscription (or an Anthropic API key) even if your team uses Antigravity, plus two repository secrets.
+1. **Keeping them current.**
+   - **Linear:** the `codekit-docs` GitHub Action. If `.github/workflows/codekit-docs.yml` already exists, don't ask: go straight to the secrets check. Otherwise ask:
 
-On a yes:
+     > Install the `codekit-docs` GitHub Action? After every merge it updates the app's **Product Map**, **Glossary**, and **Decision Log** (reference only) in your Linear project, so PMs can read about and ask about the app without GitHub access. It runs Claude Code on GitHub, so it needs a Claude Pro or Max subscription (or an Anthropic API key) even if your team uses Antigravity, plus two repository secrets.
 
-1. **Workflow:** `mkdir -p .github/workflows` and write it from [../resources/codekit-docs.yml](../resources/codekit-docs.yml), with `BASE_BRANCH` replaced by the base branch from Step 3.
-2. **Secrets:** run `gh secret list` (it shows names only). For each of these that's missing, give the user the command to run **in their own terminal**, not through `!`. Never ask for, read, or handle a secret's value yourself.
+     On a yes, `mkdir -p .github/workflows` and write the workflow from [../resources/codekit-docs.yml](../resources/codekit-docs.yml), with `BASE_BRANCH` replaced by the base branch from Step 3.
 
-   | Secret | How the user sets it |
-   |--------|----------------------|
-   | `CLAUDE_CODE_OAUTH_TOKEN` | Run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and paste the token when prompted. |
-   | `LINEAR_API_KEY` | `gh secret set LINEAR_API_KEY --body "$LINEAR_API_KEY"`, which reuses the key already exported in their profile. |
+     **Secrets:** run `gh secret list` (it shows names only). For each of these that's missing, give the user the command to run **in their own terminal**, not through `!`. Never ask for, read, or handle a secret's value yourself.
 
-   A team on the Anthropic API instead of a subscription replaces the workflow's `claude_code_oauth_token` line with `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}` and sets that secret.
-3. **First run:** the Action runs once the workflow is on the base branch. With no map in Linear yet, its first run builds the whole map. To build it before then, run `/codekit docs` locally.
+     | Secret | How the user sets it |
+     |--------|----------------------|
+     | `CLAUDE_CODE_OAUTH_TOKEN` | Run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and paste the token when prompted. |
+     | `LINEAR_API_KEY` | `gh secret set LINEAR_API_KEY --body "$LINEAR_API_KEY"`, which reuses the key already exported in their profile. |
+
+     A team on the Anthropic API instead of a subscription replaces the workflow's `claude_code_oauth_token` line with `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}` and sets that secret.
+   - **Without Linear:** nothing to install. `sdd-push` updates them inside each PR, and the `project-docs-behind` pre-push hook (Steps 4 and 5) warns when commits pushed some other way leave them behind. If Step 4 skipped codekit's pre-commit config for the repo's own hooks, say the warning isn't installed.
+2. **First build.** Skip it if `docs/project/product-map.md` exists, or if the Action was already installed before this run. With Linear, it also needs the Linear API key from Step 1: if that check failed, skip it and say why. Otherwise ask:
+
+   > Build the project docs now? The Product Map is written from the code, and the Decision Log starts with the decisions in the specs already merged, so nothing is lost when `specs/` stops being tracked. It reads the whole codebase once, so it takes a while.
+
+   On a yes, read [../../project-docs/SKILL.md](../../project-docs/SKILL.md) and follow it. If it's declined, the Action's first run builds them, specs included. Without Linear, `/project-docs` builds them whenever the user is ready.
 
 ## 8. Verify and summarize
 
-Check that `git config codekit.basebranch` returns the chosen branch, which proves the include works. Then report what was installed, skipped, or still missing (framework, constitution, Action and its secrets, optional checks), and what to commit: `.config/`, `.gitignore`, the framework files, and `.github/workflows/codekit-docs.yml` if installed. Next is `/sdd-plan`.
+Check that `git config codekit.basebranch` returns the chosen branch, which proves the include works. Then report what was installed, skipped, or still missing (framework, constitution, project docs, Action and its secrets, optional checks), and what to commit: `.config/`, `.gitignore`, the framework files, `docs/project/` if built, and `.github/workflows/codekit-docs.yml` if installed. Next is `/sdd-plan`.

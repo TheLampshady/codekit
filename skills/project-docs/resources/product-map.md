@@ -1,6 +1,6 @@
 # Product Map
 
-What this app does today, in product language. It's generated from the code after every merge, so don't edit it here: the next update overwrites hand edits. To change a name or a definition, edit the Glossary. To report something wrong, file a ticket in this project. Each entry links the code it was read from.
+What this app does today, in product language. It's generated from the code as changes ship, so don't edit it here: the next update overwrites hand edits. To change a name or a definition, edit the Glossary. To report something wrong, file a ticket. Each entry links the code it was read from.
 
 **How hard is a change?** Find the rung it lands on, using Core entities and Interfaces below:
 

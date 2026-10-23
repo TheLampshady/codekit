@@ -34,7 +34,7 @@ flowchart LR
 
     commit -- "Human<br/>feedback" --> pr
 
-    subgraph pr ["/sdd-pr"]
+    subgraph pr ["/sdd-push"]
         direction TB
         Rebase[resolve-conflict] --> Push[git push<br/>OpenSpec: archive first]
         Push --> PR["[Artifact] GitHub PR<br/>code only, Fixes ENG-123"]
@@ -58,7 +58,7 @@ flowchart LR
     style LDocs fill:#dcfce7,stroke:#16a34a
 ```
 
-**Where things live** (with Linear on). Code goes in GitHub. Prose goes in Linear: with SpecKit or no framework, `specs/` stays local while you work and is gitignored; at PR time the issue gets the spec, plan, and research (tasks, contracts, and data models are build-time only, so they stay local). OpenSpec keeps `openspec/` in the repo by design. Without Linear (`codekit.linear = false`), specs stay committed, because the repo is their only home.
+**Where things live** (with Linear on). Code goes in GitHub. Prose goes in Linear: with SpecKit or no framework, `specs/` stays local while you work and is gitignored; at PR time the issue gets the spec, plan, and research (tasks, contracts, and data models are build-time only, so they stay local). OpenSpec keeps `openspec/` in the repo by design. Without Linear (`codekit.linear = false`), specs stay committed, because the repo is their only home, and the project docs live in `docs/project/`.
 
 ### Step by step
 
@@ -73,12 +73,12 @@ flowchart LR
 3. **`/sdd-implement`.** SpecKit: `tasks → implement → converge` (repeating implement until converge finds nothing left, at most twice). OpenSpec: `apply`. Otherwise it follows the plan by hand. Tests and linters run at the end.
 4. **Test it yourself.**
 5. **`/sdd-commit`.** The first run creates the commit and later runs amend it. A local review follows, and its blockers are listed.
-6. **`/sdd-pr`.** After a confirmation screen: rebase (OpenSpec changes are archived into `openspec/specs/`, amended into the one commit), push, then `gh pr create`. The PR shows code only. The issue gets the PR link, moves to *In Review* (not for `--draft`), and gets the spec, plan, and research through `linear-docs` (needs `LINEAR_API_KEY`), their copy of record since `specs/` isn't committed.
+6. **`/sdd-push`.** After a confirmation screen: rebase (OpenSpec changes are archived into `openspec/specs/`, amended into the one commit), push, then `gh pr create`. The PR shows code only. The issue gets the PR link, moves to *In Review* (not for `--draft`), and gets the spec, plan, and research through `linear-docs` (needs `LINEAR_API_KEY`), their copy of record since `specs/` isn't committed.
 7. **After merge.** Linear's GitHub integration closes the issue through `Fixes ENG-123`. The `codekit-docs` Action (if installed) updates the Product Map, adds the ticket's decisions to the Decision Log, and appends new Glossary terms, all in Linear.
 
 ### Addressing PR feedback
 
-Make the changes, then run `/sdd-commit` (amends) and `/sdd-pr` (sees the open PR, rebases, pushes with `--force-with-lease`, and refreshes the body).
+Make the changes, then run `/sdd-commit` (amends) and `/sdd-push` (sees the open PR, rebases, pushes with `--force-with-lease`, and refreshes the body).
 
 ## Project initialization
 
@@ -121,9 +121,9 @@ flowchart LR
 
 Run `/codekit update` after updating the plugin, or periodically. The constitution and OpenSpec config are only ever **appended to**: a principle added in a newer codekit release is offered, and your existing ones are never reworded.
 
-### Product docs
+### Project docs
 
-The app's **Product Map**, **Decision Log**, and **Glossary** live in its Linear project, not the repo, so PMs can read them, ask Linear Agent about the app (including "how hard is X?"), and file tickets in one place.
+The app's project docs, the **Product Map**, **Decision Log**, and **Glossary**, live in its Linear project, not the repo, so PMs can read them, ask Linear Agent about the app (including "how hard is X?"), and file tickets in one place.
 
 ```mermaid
 flowchart LR
@@ -140,12 +140,14 @@ flowchart LR
 ```
 
 - **When:** after every merge, through the Action that `/codekit init` installs. Only the entries the new commits touched change, so names stay stable and PMs can follow what moved. A merge with no user-facing change only moves the sync line.
-- **Full rebuild:** from the Actions tab (**Run workflow** → **full**), or `/codekit docs --full` locally. Use it for the first build, or when the map seems off.
-- **Locally:** `/codekit docs` does the same update, but shows the changes and asks before publishing.
+- **First build:** `/codekit init` offers it. Besides the map, it adds the decisions from specs already merged to the Decision Log, so none are lost when `specs/` stops being tracked.
+- **Full rebuild:** from the Actions tab (**Run workflow** → **full**), or `/project-docs --full` locally, when the map seems off.
+- **Locally:** `/project-docs` does the same update, but shows the changes and asks before publishing.
+- **Without Linear:** the same three docs are files in `docs/project/`. `sdd-push` updates them inside each PR and amends them into its commit, so they're reviewed with the code. Commits pushed some other way are caught up by the next update, and a pre-push hook says when the docs are behind.
 - **Who edits what:** the map is generated, so fix the code or the Glossary, not the map. The Decision Log is append-only and for reference: it's AI-extracted, each entry links its ticket as the source, and nothing feeds it to an agent. The Glossary belongs to the team, so the update only appends terms to it.
 - **Effort questions:** the map's Core entities (attributes, cardinality, states) and Interfaces (who consumes each) let Linear Agent place a request on an effort rung, listed at the top of the map. That's a starting point; a developer confirms it.
 
-Setup and secrets: [SETUP.md § Product docs Action](SETUP.md#product-docs-action).
+Setup and secrets: [SETUP.md § Project docs](SETUP.md#project-docs).
 
 #### Example: one feature with SpecKit
 
@@ -167,7 +169,7 @@ sequenceDiagram
     Note over Local: tasks → implement → converge
     Dev->>Local: /sdd-commit
     Note over Local: one commit, code only
-    Dev->>GH: /sdd-pr
+    Dev->>GH: /sdd-push
     Note over GH: PR shows code only
     Local->>Issue: spec.md, plan.md, research.md
     Note over Local: tasks.md, data-model.md stay local
@@ -198,7 +200,7 @@ And where everything ends up:
 
 `/update-deps` (or `/update-deps <package> ...`) upgrades the project's own dependencies. On the base branch it first offers a `deps/<date>` branch. It applies every update that verifies green with the project's existing checks, shows a three-line card for each update that needs a code change, and offers the new features worth adopting as Linear issues. It finishes with a report and an offer to commit through `/sdd-commit`.
 
-**Optional, pairs well:** [repokit](https://github.com/TheLampshady/repokit)'s `/dockit` generates `docs/FOUNDATIONS.md` and `docs/PRINCIPLES.md`. `sdd-implement` and `code-review-local` read those as the project's conventions, and `/codekit init` uses `docs/FOUNDATIONS.md`, when present, to build the constitution's Project Patterns. codekit works without them.
+**Optional, pairs well:** repokit's `/dockit` generates `docs/FOUNDATIONS.md` and `docs/PRINCIPLES.md`. `sdd-implement` and `code-review-local` read those as the project's conventions, and `/codekit init` uses `docs/FOUNDATIONS.md`, when present, to build the constitution's Project Patterns. codekit works without them.
 
 ## Git configuration
 

@@ -32,7 +32,7 @@ One feature branch carries one evolving commit by default: the first run creates
 
 Amending rewrites the branch's last commit, so check two things first:
 - **Someone else has pushed to this branch:** `git log --format=%ae origin/<base-branch>..origin/<branch>` lists an email other than `git config user.email`. Make a **new** commit instead, because rewriting a shared branch breaks their copy.
-- **The commit is already pushed:** `git branch -r --contains HEAD` lists a branch. Amend anyway, and warn that `sdd-pr` will push with `--force-with-lease`.
+- **The commit is already pushed:** `git branch -r --contains HEAD` lists a branch. Amend anyway, and warn that `sdd-push` will push with `--force-with-lease`.
 
 ### 3. Resolve the template and ticket
 
@@ -45,7 +45,13 @@ Amending rewrites the branch's last commit, so check two things first:
 1. A ticket identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, e.g. `user/eng-123-title` → `ENG-123`. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`), so keep it only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, if `get_issue` finds it. If Linear can't be reached, keep it and say it's unchecked.
 2. When amending, the ID in the previous message.
 3. The conversation.
-4. None: put `[TASK]` where the template has `[TICKET_ID]`, and drop its other ticket lines, such as `Linear:`. Don't invent an ID.
+4. None. Don't invent an ID.
+
+**Ticket link** (`<ticket-url>`): the issue's `url` from `get_issue` (`fields: ["url"]`, or reuse the call that checked the ID), without the title slug after the ID: `https://linear.app/<workspace>/issue/ENG-123`. If Linear can't be reached, use the ID.
+
+**Ticket slots.** Every commit names its ticket, whatever the template's placeholders say, so it can be traced back:
+- **Subject tag:** the subject's leading `[...]` is the ticket slot, whatever the template writes there (`[TICKET_ID]`, `[TASK]`, `[ABC-000]`). Fill it with `[<ticket-id>]`, or `[TASK]` when there's no ticket.
+- **Link line:** with a ticket, fill the template's `Linear:` line with `<ticket-url>`. If the template has none, add `Linear: <ticket-url>` as the message's last line. With no ticket, drop the line.
 
 For the summary, use the ticket title from the conversation or the spec as raw material. Describe the change, not the ticket.
 
@@ -76,4 +82,4 @@ Use `git commit --amend -F -` for amend or reword.
 ### 6. Review and summary
 
 1. Run the local review, unless the user said to skip it. Its instructions are in [../code-review-local/SKILL.md](../code-review-local/SKILL.md). If you can start a subagent (Claude Code's Agent tool, `general-purpose`), give it that file's path and `<base-branch>`, and tell it to follow the file. That way the review comes from a reviewer that hasn't seen this conversation. Otherwise, follow the file here. Surface any **Blockers** prominently.
-2. End with the short hash, the subject, new or amended, and the review result. Next is `/sdd-pr`, or fixing blockers and running `/sdd-commit` again, which amends.
+2. End with the short hash, the subject, new or amended, and the review result. Next is `/sdd-push`, or fixing blockers and running `/sdd-commit` again, which amends.

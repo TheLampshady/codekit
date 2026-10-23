@@ -1,12 +1,12 @@
 ---
-name: sdd-pr
-description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Confirms the plan, rebases on the base branch (resolving conflicts), archives OpenSpec changes, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
+name: sdd-push
+description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Confirms the plan, rebases on the base branch (resolving conflicts), archives OpenSpec changes, updates the project docs in docs/project/ when the repo doesn't use Linear, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[--draft] [base-branch]"
 ---
 
-# SDD PR
+# SDD Push
 
 The last step of the loop: a committed feature branch becomes a GitHub PR, linked to its Linear issue.
 
@@ -20,7 +20,7 @@ The last step of the loop: a committed feature branch becomes a GitHub PR, linke
 4. **Uncommitted changes:** if `git status --porcelain` isn't empty, ask whether to commit first. On a yes, read [../sdd-commit/SKILL.md](../sdd-commit/SKILL.md) and follow it, then continue here.
 5. **Commits:** `git rev-list --count origin/<base-branch>..HEAD` must be ≥1. If it's more than one, mention it. That's fine, so don't squash unasked.
 6. **Existing PR:** run `gh pr view --json number,url,state,isDraft 2>/dev/null`. If an open PR exists, this run is an **update**. Skip creation in Step 4 and refresh the body instead.
-7. **Ticket ID:** if `git config codekit.linear` is `false`, run in no-ticket mode. Otherwise, take it from the branch's commits (`git log --format=%B origin/<base-branch>..HEAD`, newest first), but only from a `[<ID>] ::` subject or a `Linear: <ID>` line, which `sdd-commit` already checked. Never from elsewhere in a message: a body line like "read files as UTF-8" looks like an ID too. Failing that, use a Linear identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, but only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, `get_issue` finds it. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`). If there's no ID, run in no-ticket mode.
+7. **Ticket ID:** if `git config codekit.linear` is `false`, run in no-ticket mode. Otherwise, take it from the branch's commits (`git log --format=%B origin/<base-branch>..HEAD`, newest first), but only from a `[<ID>] ::` subject or a `Linear:` line (an ID, or the ID in an issue URL), which `sdd-commit` already checked. Never from elsewhere in a message: a body line like "read files as UTF-8" looks like an ID too. Failing that, use a Linear identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, but only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, `get_issue` finds it. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`). If there's no ID, run in no-ticket mode.
 8. **Issue (ticket mode):** call `get_issue` once with `fields: ["title", "description", "team", "status", "statusType"]`, and reuse the result in Steps 2 and 4. Step 5 fetches again, after the PR exists. If Linear says the issue doesn't exist, warn and run in no-ticket mode. If Linear can't be reached, keep the ID, warn, and expect the Linear steps to fail.
 
 ### 2. Confirm
@@ -32,6 +32,7 @@ Source:   <branch>  (<n> commit(s) ahead)
 Target:   <base-branch>  (from <config | gh default | prompt>)
 Rebase:   onto origin/<base-branch>
 Archive:  openspec/changes/<change-id> → openspec/specs/  |  already archived  |  n/a (not OpenSpec)
+Docs:     update docs/project/ and amend  |  n/a (Linear, no docs/project/, or draft)
 Push:     git push -u origin <branch>   [--force-with-lease if history was rewritten]
 PR:       create (draft? yes/no)  |  update #<number>  [+ mark ready | + back to draft]
 Linear:   <ticket-id> "<issue title>" → link PR + move to "<review-state>" + upload spec  |  none
@@ -47,7 +48,8 @@ Options: **Proceed (recommended)**, **Proceed as draft**, **Cancel**.
 
 1. Run the `resolve-conflict` skill targeting `<base-branch>`. It fetches, rebases, and walks through any conflicts with the user. Continue only once it completes cleanly. If the user aborts, stop here.
 2. **OpenSpec only: archive the change** in this PR, so no follow-up PR is needed. It runs after the rebase, so it builds on every change already archived on `<base-branch>`. See [Archive](#archive) below. Skip it for draft PRs. SpecKit and no-framework specs aren't committed at all: the Linear issue holds them (Step 5), so there's nothing to archive.
-3. Push:
+3. **Project docs, without Linear:** only when `git config codekit.linear` is `false` and `docs/project/product-map.md` exists. Skip it for draft PRs. Read [../project-docs/SKILL.md](../project-docs/SKILL.md) and follow it. It runs after the rebase, so it builds on the docs every merged PR left. If it changed `docs/project/`, amend them into the branch's commit (`git add docs/project && git commit --amend --no-edit`), retrying once after a reformatting hook as the archive does.
+4. Push:
    - If the branch has no upstream, or the rebase didn't rewrite pushed commits: `git push -u origin HEAD`
    - If pushed history was rewritten by an amend or rebase: `git push --force-with-lease -u origin HEAD`. Say why it's needed. Never use plain `--force`.
 
@@ -58,7 +60,7 @@ OpenSpec only. Run `/opsx:archive <change-id>`, else `openspec archive <change-i
 1. **Already archived?** If the change is under `openspec/changes/archive/`, skip. OpenSpec can't archive it again: it finds a change by its active folder, which the archive moved. If the spec has to change after archiving (e.g. after review feedback), ask the user whether to open a new change for it or edit `openspec/specs/` directly in this PR.
 2. **Amend** it into the branch's commit (`git add -A openspec && git commit --amend --no-edit`), so the branch keeps one commit. If a pre-commit hook reformats files, run `git add -A openspec` and retry once. On any other failure, show it and stop. The push then needs `--force-with-lease` if the commit was already pushed.
 
-If two PRs that both touch the same capability are open at once, whichever merges second conflicts on `openspec/specs/`. Running `/sdd-pr` again rebases, and `resolve-conflict` walks through it.
+If two PRs that both touch the same capability are open at once, whichever merges second conflicts on `openspec/specs/`. Running `/sdd-push` again rebases, and `resolve-conflict` walks through it.
 
 ### 4. Create or update the PR
 

@@ -1,8 +1,8 @@
 [TICKET_ID] :: One-sentence summary in the imperative mood
 
-Linear: TICKET_ID
-
 Includes:
   - The main change, in a few words
   - A supporting change, if any
   - Keep it to 2-5 bullets
+
+Linear: TICKET_URL

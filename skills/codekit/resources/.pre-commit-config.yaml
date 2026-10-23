@@ -13,3 +13,26 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: detect-private-key
+
+  # ----------------------------
+  # codekit project docs (repos without Linear only; init drops this block
+  # otherwise). On push, warns when commits changed code since the sync line
+  # in docs/project/product-map.md without updating docs/project/. Never blocks.
+  # ----------------------------
+  - repo: local
+    hooks:
+      - id: project-docs-behind
+        name: project docs up to date
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        stages: [pre-push]
+        entry: |
+          bash -c '
+          sync=$(sed -n "s/^Synced to commit \([0-9a-f]*\).*/\1/p" docs/project/product-map.md 2>/dev/null)
+          git cat-file -e "$sync^{commit}" 2>/dev/null || exit 0
+          updated=$(git rev-list "$sync..HEAD" -- docs/project)
+          n=$(git rev-list "$sync..HEAD" -- . ":(exclude)docs/project" | grep -cvxF "$updated")
+          [ "$n" -eq 0 ] || echo "Project docs are $n commit(s) behind the code. Run /project-docs and commit docs/project/."
+          '
