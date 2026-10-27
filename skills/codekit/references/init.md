@@ -76,7 +76,7 @@ If `git ls-files specs` lists files, they're already tracked, and `.gitignore` w
 Only if SpecKit or OpenSpec is present. Follow [sdd-context.md](sdd-context.md). In short:
 1. Start from codekit's constitution, [../resources/principles.md](../resources/principles.md). Ask whether the project has shipped yet.
 2. Build a **Project Patterns** section only from patterns verified in the repo: `docs/FOUNDATIONS.md` first, then written docs, then the code.
-3. SpecKit: run `/speckit.constitution` (or the `speckit-constitution` skill) with the filled baseline, which writes `.specify/memory/constitution.md`. OpenSpec: fill `openspec/config.yaml` from [../resources/openspec-config.yaml](../resources/openspec-config.yaml) (condensed `context`, plus `rules` per artifact).
+3. Write the examples companion to `docs/PRINCIPLES-EXAMPLES.md`, and keep the constitution under 300 lines. SpecKit: run `/speckit.constitution` (or the `speckit-constitution` skill) with the filled baseline, which writes `.specify/memory/constitution.md`. OpenSpec: fill `openspec/config.yaml` from [../resources/openspec-config.yaml](../resources/openspec-config.yaml) (condensed `context`, plus `rules` per artifact).
 4. Treat an unfilled framework template as missing. **Never replace** a filled-in constitution or config: offer to append only the missing principles.
 
 ## 7. Project docs
