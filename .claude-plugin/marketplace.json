@@ -9,6 +9,11 @@
       "name": "codekit",
       "source": "./",
       "description": "Spec-driven development from ticket to pull request. sdd-plan pulls a Linear issue, branches, and hands it to SpecKit or OpenSpec; sdd-implement builds it; sdd-commit commits it; sdd-push opens the GitHub PR and links it back to Linear."
+    },
+    {
+      "name": "codekit-board",
+      "source": "./pm",
+      "description": "Product manager companion for a team's board in Linear, Jira, or GitHub. Answers questions about status and the product, and turns rough requests into story-sized tickets."
     }
   ]
 }
