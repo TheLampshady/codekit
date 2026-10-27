@@ -92,21 +92,31 @@ If the user says "skip" or "use your judgment", or leaves a question unanswered,
 
 ## 5. Confirm
 
-Show one confirmation before anything is written to the tracker, in this order:
+Show one short confirmation before anything is written to the tracker. **Don't print the full description.** The PM is checking that the request was understood and what it commits the team to, not proofreading a ticket. Keep it to about 15 lines, in the PM's terms, in this order:
 
-**What you're asking for**: two or three plain sentences in the PM's terms. Cover who gets what, what changes for them, and what this ticket deliberately leaves out. This is the check that the request was understood, so write it for the PM, not for engineers.
+**What you're asking for**: two or three plain sentences. Who gets what, what changes for them, and what this ticket deliberately leaves out.
 
-**The ticket**:
+**Impact**: who is affected, what they can do afterward that they can't now, and which Product Map activities or capabilities it touches. Say if it changes an existing rule or Known limit.
 
-- Title
-- Type and labels
-- Cycle (name and dates), state, and board
-- Parent epic and links, each with ID and title
-- Effort rung from the Product Map, if placed
-- The full description
-- Assumptions made
+**Effort**: the Product Map rung with a one-line reason, and whether it fits one cycle. This is a starting point a developer confirms, never an estimate in days or points.
 
-Ask for a single go-ahead. With `ask_user_input_v0`, offer: Create it / Change something / Cancel. Apply short edits and re-show only what changed. Creating a ticket is visible to the whole team, so never skip this step.
+**Risk**: only what is grounded in the board or docs, one line each:
+- a conflict or overlap with another ticket or rule, with its ID
+- a dependency or "blocked by" that could delay it
+- rung 5 or 6: coordination outside the team, or a third-party integration
+- an assumption whose answer would change scope
+
+**Cost**: beyond build effort, only what the request or docs name, such as a paid third-party service, new infrastructure, or message volume. If nothing is named, write "No cost beyond build effort known". Never guess a dollar figure.
+
+**Open assumptions**: defaults you applied instead of asking, each one line, so the PM can reject any.
+
+**Ticket card**, one line each: title · Type and labels · cycle (name and dates), state, and board · parent and links with ID and title.
+
+If any of Impact, Effort, Risk, or Cost has nothing grounded, say so in a few words instead of padding it.
+
+Ask for a single go-ahead. With `ask_user_input_v0`, offer: Create it / Ask a question / Cancel. A question can be about the summary, the draft, or a change the PM wants. Answer it, apply any edit, re-show only what changed, and ask again. Never print the description in the confirmation, even on request: the PM reviews the real ticket in the tracker after it is created. Creating a ticket is visible to the whole team, so never skip this step.
+
+When a split created several tickets, show one summary for the set, with a card line for each ticket, and add Impact, Effort, and Risk per ticket only where they differ. Ask once.
 
 ## 6. Create the ticket
 
@@ -124,10 +134,11 @@ If the ticket was created but a follow-up call failed (cycle, state, parent, or 
 
 ## 7. Return the link and what shaped it
 
-Lead with the link, then the essentials, then the Shaped by list:
+Lead with the link and ask the PM to review the ticket in the tracker, then the essentials, then the Shaped by list:
 
 > Created **ABC-123**: [Approvals] Bulk approve requests
 > https://...
+> Please review it in the tracker and edit anything that's off.
 > Cycle 14 (Oct 20 to Nov 2) · Feature · Approvals · Parent: ABC-40
 >
 > **Shaped by**
@@ -136,4 +147,4 @@ Lead with the link, then the essentials, then the Shaped by list:
 > - Product Map, Approvals: "Approvers act only on their own team's requests" kept as a rule
 > - Glossary: "request" means an Approval Request, not a Ticket
 
-When a split created several tickets, list every link first, then one combined Shaped by list.
+When a split created several tickets, list every link first, ask for the review once, then give one combined Shaped by list.
