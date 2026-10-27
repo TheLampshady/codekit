@@ -13,7 +13,18 @@
     {
       "name": "codekit-board",
       "source": "./pm",
-      "description": "Product manager companion for a team's board in Linear, Jira, or GitHub. Answers questions about status and the product, and turns rough requests into story-sized tickets."
+      "strict": false,
+      "version": "0.1.0",
+      "description": "Product manager companion for a team's board in Linear, Jira, or GitHub. Answers questions about status and the product, and turns rough requests into story-sized tickets.",
+      "author": {
+        "name": "Lampshady",
+        "email": "lampshady24@gmail.com"
+      },
+      "homepage": "https://github.com/TheLampshady/codekit",
+      "license": "MIT",
+      "skills": [
+        "./skills/codekit-board"
+      ]
     }
   ]
 }
