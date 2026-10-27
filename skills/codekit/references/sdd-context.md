@@ -12,7 +12,9 @@ The procedure behind `/codekit init` Step 6, and the constitution re-sync in `/c
 
 The baseline is codekit's constitution, [../resources/principles.md](../resources/principles.md). Every project initialized with codekit starts from the same principles. Only Project Patterns and the filled-in placeholders differ.
 
-Ask one question: **has the project shipped a production release?** If it has, drop *No Backwards Compatibility Before First Release* from the constitution, and its line from the OpenSpec context.
+The WRONG/CORRECT examples are in a companion, [../resources/principles-examples.md](../resources/principles-examples.md), written to `docs/PRINCIPLES-EXAMPLES.md`. The constitution is loaded into every plan, analysis, and review, so it holds rules only and **stays under 300 lines including Project Patterns**.
+
+Ask one question: **has the project shipped a production release?** If it has, drop *No Backwards Compatibility Before First Release* from the constitution and the examples, and its line from the OpenSpec context.
 
 ## 2. Check what exists (never overwrite)
 
@@ -43,20 +45,12 @@ Write each pattern as:
 ~~~~markdown
 ### <Short name>
 
-<One MUST sentence.>
-
-```<lang>
-# CORRECT
-<real import / usage from the codebase>
-
-# WRONG
-<the thing it replaces>
-```
+<One MUST sentence.> **Use:** `<real import / usage>` · **Never:** `<the thing it replaces>`
 
 **Where:** `<path>` · **Rationale:** <one line, why it exists>
 ~~~~
 
-Finish with a **Quick Reference** table (Import · Purpose) of the shared entry points. If nothing qualifies, write `_No project-specific patterns yet. Add them as the codebase establishes them._` rather than padding.
+Finish with a **Quick Reference** table (Import · Purpose) of the shared entry points. If nothing qualifies, write `_No project-specific patterns yet. Add them as the codebase establishes them._` rather than padding. If the finished constitution would pass 300 lines, merge or drop the weakest patterns; a longer example goes in `docs/PRINCIPLES-EXAMPLES.md`.
 
 ## 4. Fill the baseline placeholders
 
@@ -69,19 +63,21 @@ Finish with a **Quick Reference** table (Import · Purpose) of the shared entry 
 | `RATIFIED_DATE` | Today, `YYYY-MM-DD` |
 
 Then adapt the content:
-- **Translate the examples** to the project's primary language, so a Go repo gets Go examples. Keep each WRONG/CORRECT pair's point the same.
-- **Drop what doesn't apply.** A repo with no UI drops the Components and Pages rows and the frontend half of Copy-Resilient Tests. A repo with no HTTP API drops the endpoint rows.
+- **Translate the examples** in the companion file to the project's primary language, so a Go repo gets Go examples. Keep each WRONG/CORRECT pair's point the same.
+- **Drop what doesn't apply**, from both files. A repo with no UI drops the Components and Pages rows and the frontend half of Copy-Resilient Tests. A repo with no HTTP API drops the endpoint rows.
 - **Name the real tools.** Replace the generic tool hints (network blocking, property-based testing) with what the project uses, or the standard choice for its stack.
 - Remove the codekit HTML comment at the top.
 
 ## 5. Write it
+
+**Examples:** write the filled companion to `docs/PRINCIPLES-EXAMPLES.md` unless that file exists, and never overwrite it. Its `PROJECT_NAME` is the same as the constitution's.
 
 **SpecKit**: run `/speckit.constitution` with the filled constitution as its input, and ask it to keep the text as given. It writes `.specify/memory/constitution.md` and a Sync Impact Report. If the command isn't available, write the file directly. Remind the user that the Sync Impact Report comment is scratch, to delete before committing.
 
 **OpenSpec**: start from [../resources/openspec-config.yaml](../resources/openspec-config.yaml):
 - `PROJECT_SUMMARY`: two or three lines on what the project is.
 - `STACK_SUMMARY`: languages, frameworks, data stores, test tools, and deploy targets.
-- `FULL_PRINCIPLES_POINTER`: if a constitution or `docs/PRINCIPLES.md` exists, `Full text with examples: <path>`. Otherwise delete the line.
+- `FULL_PRINCIPLES_POINTER`: `Examples: docs/PRINCIPLES-EXAMPLES.md`, plus `Full text: .specify/memory/constitution.md` when both frameworks are present.
 - `QUALITY_GATES_SUMMARY`: the hook names, comma-separated.
 - `PROJECT_PATTERNS`: each pattern from Section 3 as **one line** (`Use <x> from <path>; never <y>`). No code blocks: context is paid on every artifact.
 - Keep `context` under roughly 8 KB. OpenSpec drops it entirely over 50 KB.
@@ -90,4 +86,4 @@ Then validate: `uv run --no-project --with pyyaml python -c "import yaml; yaml.s
 
 ## 6. Report
 
-Name the target file(s), the baseline used, how many project patterns were found and from which source, and anything dropped as not applicable. Suggest committing `.specify/memory/` or `openspec/config.yaml` so the team shares them.
+Name the target file(s), the examples file, the constitution's line count, the baseline used, how many project patterns were found and from which source, and anything dropped as not applicable. Suggest committing `.specify/memory/` or `openspec/config.yaml`, and `docs/PRINCIPLES-EXAMPLES.md`, so the team shares them.
