@@ -35,6 +35,19 @@ Supporting skills, also callable on their own:
 
 Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in Claude Code. In Claude Code they only run when you call them, which keeps their descriptions out of every session's context. The exception is `resolve-conflict`, which Claude can also start by itself when it hits a merge conflict. Antigravity doesn't support that setting, so there the skills can also start on their own from a request like "pick up ENG-123".
 
+## codekit-board (for PMs)
+
+[`codekit-board`](pm/skills/codekit-board/SKILL.md) is a second plugin in the same marketplace, for product managers who work in the Claude app and not the CLI. It answers questions about the board and the product (from the Product Map, Glossary, and Decision Log), and turns a rough request into a story-sized ticket, confirmed with a short impact, effort, and risk summary before anything is created. It's read-only except for those confirmed tickets. PMs connect their board (Linear, Jira, or GitHub) in the app themselves.
+
+Two ways to install it:
+
+| Way | Steps | Sharing |
+|-----|-------|---------|
+| From GitHub | In the Claude app, add `TheLampshady/codekit` as a plugin source and install `codekit-board`. | Each person installs it themselves. It can't be shared from the UI. |
+| From a zip | Run `make pm-zip` to build `dist/codekit-board.zip`. In **Customize → Skills**, upload the zip (drag and drop works). | Share it with your team from the UI. |
+
+To update a zip-installed skill, run `make pm-zip` again and upload the new zip over the old skill, which replaces it in place, so the sharing stays.
+
 ## Requirements
 
 | Tool | Needed for | Setup |

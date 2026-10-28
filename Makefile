@@ -89,6 +89,20 @@ openspec: ## Install the OpenSpec CLI
 check: ## Run pre-commit checks on all files
 	pre-commit run --all-files --config .config/.pre-commit-config.yaml
 
+# ── PM skill ──────────────────────────────────────────────────────────────────
+# claude.ai uploads a skill as a zip with the skill folder at its root
+# (codekit-board/SKILL.md), so zip from pm/skills rather than from pm/.
+
+PM_ZIP ?= dist/codekit-board.zip
+
+.PHONY: pm-zip
+pm-zip: ## Zip the codekit-board skill for upload to claude.ai (dist/codekit-board.zip)
+	@mkdir -p $(dir $(PM_ZIP))
+	@rm -f $(PM_ZIP)
+	@cd pm/skills && zip -qr $(abspath $(PM_ZIP)) codekit-board -x '*.DS_Store'
+	@echo "✓ $(PM_ZIP)"
+	@unzip -l $(PM_ZIP) | tail -n +4 | head -n -2 | awk '{print "  " $$4}'
+
 # ── Status ────────────────────────────────────────────────────────────────────
 
 .PHONY: status
