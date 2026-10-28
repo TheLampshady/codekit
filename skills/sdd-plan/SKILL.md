@@ -1,6 +1,6 @@
 ---
 name: sdd-plan
-description: 'Start feature work from a Linear issue, a local spec file, or pasted ticket text. Picks up the issue in Linear (assigns it, moves it to In Progress), checks out the issue''s git branch, and hands the ticket to the active spec-driven-development framework (SpecKit or OpenSpec) to specify, clarify, and plan. Use when asked to: start ticket, pick up issue ENG-123, work on a Linear issue, plan the ticket, spec the ticket, use spec <file>, grab my next issue.'
+description: 'Start feature work from a Linear issue, a local spec file, or pasted ticket text. Picks up the issue in Linear (assigns it, moves it to In Progress), checks out the issue''s git branch, and hands the ticket to the active spec-driven-development framework (SpecKit or OpenSpec) to specify, clarify, and plan. Use when asked to: start ticket, pick up issue ENG-123, work on a Linear issue, plan the ticket, spec the ticket, use spec FILE, grab my next issue.'
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[ENG-123 | linear-url | path/to/spec.md | next]"

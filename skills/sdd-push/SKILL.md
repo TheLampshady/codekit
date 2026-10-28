@@ -1,6 +1,6 @@
 ---
 name: sdd-push
-description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Confirms the plan, rebases on the base branch (resolving conflicts), archives OpenSpec changes, updates the project docs in docs/project/ when the repo doesn't use Linear, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
+description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Confirms the plan, rebases on the base branch (resolving conflicts), archives OpenSpec changes, updates the project docs in docs/project/ when the repo does not use Linear, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[--draft] [base-branch]"
