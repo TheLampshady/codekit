@@ -45,7 +45,7 @@ Fetch live board data every run, because labels, templates, and cycles change. N
 
 - **Glossary**: map the user's words to the team's terms. A term that maps to two entries, or to none, is a candidate clarifying question.
 - **Product Map**: find the activity and capability the request touches.
-  - If the capability already exists as asked, the request is likely an Improvement or a Bug, or it isn't needed at all.
+  - If the capability already exists as asked, or something close does, the request is likely an Improvement or a Bug, or it isn't needed at all. Note what exists and where, so step 4 can ask what it doesn't cover.
   - If a Known limit covers it, cite the limit.
   - If its Rules contradict the request, that is a conflict.
   - Place the change on the "How hard is a change?" ladder. The rung feeds sizing (`story-sizing.md`) and Tech Notes.
@@ -77,14 +77,15 @@ Before asking, check whether the request, the board, the project docs, the profi
 
 Ask about gaps in this order:
 
-1. Conflicts from step 2, with tickets or with Product Map rules
-2. Size: anything that decides one story or two
-3. Terminology: a term that maps to more than one Glossary entry, or to none
-4. Who the actor is, if ambiguous (use the Product Map's "Who uses it" roles as options)
-5. The scope boundary (in vs. out)
-6. Expected behavior on success (for bugs: exact steps and what actually happens)
-7. Edge cases or error behavior
-8. Type or labels, if genuinely ambiguous
+1. Existing coverage: something in the Product Map already does this or comes close. Name it and ask what it doesn't cover, in a short answer. Recommend the likeliest gap as the answer. If the PM's answer shows the existing feature is enough, say so and don't draft a ticket.
+2. Conflicts from step 2, with tickets or with Product Map rules
+3. Size: anything that decides one story or two
+4. Terminology: a term that maps to more than one Glossary entry, or to none
+5. Who the actor is, if ambiguous (use the Product Map's "Who uses it" roles as options)
+6. The scope boundary (in vs. out)
+7. Expected behavior on success (for bugs: exact steps and what actually happens)
+8. Edge cases or error behavior
+9. Type or labels, if genuinely ambiguous
 
 Give every question a recommended answer and a short reason, grounded in the docs or the board wherever possible ("Product Map: only Admins can archive a project. Keep that?"). If `ask_user_input_v0` is available, use it with 2 to 4 options per question, recommended option first. It takes at most 3 questions per call, so use two rounds for 4 or 5. Otherwise ask in a short numbered list.
 
@@ -96,23 +97,18 @@ Show one short confirmation before anything is written to the tracker. **Don't p
 
 **What you're asking for**: two or three plain sentences. Who gets what, what changes for them, and what this ticket deliberately leaves out.
 
-**Impact**: who is affected, what they can do afterward that they can't now, and which Product Map activities or capabilities it touches. Say if it changes an existing rule or Known limit.
+**At a glance**: four lines in plain, non-technical words, each a rating and one short reason. Use the Low / Medium / High scale for Impact and Risk, and Small / Medium / Large for Effort. Don't mention rungs, systems, or code.
 
-**Effort**: the Product Map rung with a one-line reason, and whether it fits one cycle. This is a starting point a developer confirms, never an estimate in days or points.
-
-**Risk**: only what is grounded in the board or docs, one line each:
-- a conflict or overlap with another ticket or rule, with its ID
-- a dependency or "blocked by" that could delay it
-- rung 5 or 6: coordination outside the team, or a third-party integration
-- an assumption whose answer would change scope
-
-**Cost**: beyond build effort, only what the request or docs name, such as a paid third-party service, new infrastructure, or message volume. If nothing is named, write "No cost beyond build effort known". Never guess a dollar figure.
+- **Impact**: who is affected and what they can do afterward that they can't now. Add if it changes an existing rule or Known limit.
+- **Effort**: how big, and whether it fits one cycle. Base it on the Product Map rung, but keep the rung itself for Tech Notes. This is a starting point a developer confirms, never an estimate in days or points.
+- **Risk**: the single biggest grounded concern in the board or docs: a conflict or overlap with another ticket or rule (with its ID), a dependency that could delay it, coordination outside the team or a third-party integration (rung 5 or 6), or an assumption whose answer would change scope. If there are more, add them as short sub-lines.
+- **Cost**: beyond build effort, only what the request or docs name, such as a paid third-party service, new infrastructure, or message volume. If nothing is named, write "None known beyond build effort". Never guess a dollar figure.
 
 **Open assumptions**: defaults you applied instead of asking, each one line, so the PM can reject any.
 
 **Ticket card**, one line each: title · Type and labels · cycle (name and dates), state, and board · parent and links with ID and title.
 
-If any of Impact, Effort, Risk, or Cost has nothing grounded, say so in a few words instead of padding it.
+If any of the four has nothing grounded, say so in a few words instead of padding it.
 
 Ask for a single go-ahead. With `ask_user_input_v0`, offer: Create it / Ask a question / Cancel. A question can be about the summary, the draft, or a change the PM wants. Answer it, apply any edit, re-show only what changed, and ask again. Never print the description in the confirmation, even on request: the PM reviews the real ticket in the tracker after it is created. Creating a ticket is visible to the whole team, so never skip this step.
 

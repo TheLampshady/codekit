@@ -14,7 +14,7 @@
       "name": "codekit-board",
       "source": "./pm",
       "strict": false,
-      "version": "0.1.1",
+      "version": "0.1.2",
       "description": "Product manager companion for a team's board in Linear, Jira, or GitHub. Answers questions about status and the product, and turns rough requests into story-sized tickets.",
       "author": {
         "name": "Lampshady",
