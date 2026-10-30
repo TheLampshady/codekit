@@ -47,14 +47,14 @@ With `--git-dir <path>`, a script has already run git for you: `<plugin>/skills/
 
 | File | Replaces |
 |------|----------|
-| `repo.txt` | `git rev-parse --show-toplevel`, the base branch (`base=`), and `HEAD` (`head=`) |
+| `repo.txt` | `git rev-parse --show-toplevel`, the base branch (`base=`), `HEAD` (`head=`), and `git config codekit.linear-project` (`linear-project=`) |
 | `mode.txt` | `git config codekit.linear` (`mode=`), Step 3's full or incremental choice (`run=`, with `since=`), and `<sync>` |
 | `log.txt`, `messages.txt` | `git log` over the commits to cover, as a list and in full (ticket IDs come from `messages.txt`) |
 | `diffstat.txt`, `diff.patch` | `git diff` and `git show` over those commits |
 | `specs.txt` | the spec folders those commits added or changed (repo mode) |
 | `backfill/`, `backfill.txt` | `git ls-tree` and `git show <rev>:<path>` for [backfill](#backfill): the merged spec folders, and each one's date and short rev |
 
-The commits are already filtered as Step 3 describes, so use them as given.
+The script reads settings from `.config/.gitconfig` when git config lacks them, so a fresh checkout works. The commits are already filtered as Step 3 describes, so use them as given.
 
 ## 1. Prerequisites
 
@@ -66,7 +66,7 @@ With `--git-dir`, both come from `repo.txt`.
 Linear mode also needs these. If either fails, stop and say why.
 
 - **Linear API key:** `python3 <plugin>/skills/linear-docs/scripts/linear_docs.py --check`. With `--ci`, run it as written: the job passes the key in its environment, and the Action allows only commands that start with `python3`. Locally, run it the way [linear-docs](../linear-docs/SKILL.md) runs its script, so the profile's `LINEAR_API_KEY` is found: directly when the key is in the environment, else through `"$SHELL" -lic '…' </dev/null`. Run every `python3` command below the same way.
-- **Project:** `git config codekit.linear-project`. If it's missing, suggest `/codekit update`.
+- **Project:** `git config codekit.linear-project` (with `--git-dir`, `linear-project=` in `repo.txt`). If it's missing, suggest `/codekit update`.
 
 **Script (Linear mode):** `<plugin>/skills/linear-docs/scripts/project_docs.py` (`<script>` below), called by absolute path from the project root. It moves documents between Linear and disk without sending them through the model. Never read or write project docs with the Linear MCP: they're long, and every byte would go through the model.
 

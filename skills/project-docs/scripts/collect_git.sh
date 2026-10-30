@@ -8,7 +8,7 @@
 # It pulls the current project docs into <tmp>/docs/ (Linear mode) or copies
 # them from docs/project/ (repo mode), and writes the git input to <tmp>/git/:
 #
-#   repo.txt      name, root, head, base branch, base ref
+#   repo.txt      name, root, head, base branch, base ref, Linear project
 #   mode.txt      mode (linear|repo), run (full|incremental), since, sync
 #   log.txt       one line per commit to cover (empty on a full run)
 #   messages.txt  the full messages of those commits
@@ -18,7 +18,7 @@
 #   backfill/     merged spec folders, when the Decision Log doesn't exist yet,
 #                 with backfill.txt listing "<folder> <date> <short rev>"
 #
-# Writes only under <tmp>. Never changes directory.
+# Settings come from git config, else from .config/.gitconfig. Writes only under <tmp>. Never changes directory.
 set -euo pipefail
 
 full=0
@@ -41,14 +41,18 @@ out=$tmp/git
 here=$(dirname "$(readlink -f "$0")")
 project_docs=$here/../../linear-docs/scripts/project_docs.py
 
-base=$(git config codekit.basebranch || true)
+# A setting from git config, else from the committed .config/.gitconfig, so a
+# fresh checkout (where init's include.path isn't set) keeps its settings.
+cfg() { git config "codekit.$1" 2>/dev/null || git config -f .config/.gitconfig "codekit.$1" 2>/dev/null || true; }
+
+base=$(cfg basebranch)
 [ -n "$base" ] || base=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)
 base=${base:-main}
 ref=origin/$base
 git rev-parse -q --verify "$ref" >/dev/null || ref=$base
 
 mode=linear
-[ "$(git config codekit.linear || true)" = "false" ] && mode=repo
+[ "$(cfg linear)" = "false" ] && mode=repo
 
 rm -rf "$tmp/docs" "$out"
 mkdir -p "$tmp/docs" "$out"
@@ -84,6 +88,7 @@ fi
   echo "head=$(git rev-parse HEAD)"
   echo "base=$base"
   echo "ref=$ref"
+  echo "linear-project=$(cfg linear-project)"
 } > "$out/repo.txt"
 {
   echo "mode=$mode"
