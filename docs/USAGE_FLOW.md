@@ -73,7 +73,7 @@ flowchart LR
 3. **`/sdd-implement`.** SpecKit: `tasks → implement → converge` (repeating implement until converge finds nothing left, at most twice). OpenSpec: `apply`. Otherwise it follows the plan by hand. Tests and linters run at the end.
 4. **Test it yourself.**
 5. **`/sdd-commit`.** The first run creates the commit and later runs amend it. A local review follows, and its blockers are listed.
-6. **`/sdd-push`.** After a confirmation screen: rebase (OpenSpec changes are archived into `openspec/specs/`, amended into the one commit), push, then `gh pr create`. The PR shows code only. The issue gets the PR link, moves to *In Review* (not for `--draft`), and gets the spec, plan, and research through `linear-docs` (needs `LINEAR_API_KEY`), their copy of record since `specs/` isn't committed.
+6. **`/sdd-push`.** After a confirmation screen that checks the target branch (a PR is always opened): rebase (OpenSpec changes are archived into `openspec/specs/`, amended into the one commit), push, then `gh pr create`. The PR shows code only. The issue gets the PR link, moves to *In Review* (not for `--draft`), and gets the spec, plan, and research through `linear-docs` (needs `LINEAR_API_KEY`), their copy of record since `specs/` isn't committed.
 7. **After merge.** Linear's GitHub integration closes the issue through `Fixes ENG-123`. The `codekit-docs` Action (if installed) updates the Product Map, adds the ticket's decisions to the Decision Log, and appends new Glossary terms, all in Linear.
 
 ### Addressing PR feedback

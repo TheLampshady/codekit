@@ -3,7 +3,7 @@ name: project-docs
 description: 'Keep the app''s project docs current for people who don''t read the code: a Product Map (what the app does and what its data and interfaces support, in product language, each entry linked to code), a Decision Log (what was decided and why, from each shipped spec), and a Glossary. They live in the app''s Linear project, or in docs/project/ when the repo doesn''t use Linear. Updates only what changed since the last sync; the first build also logs the decisions in specs already merged. Runs after each merge from the codekit-docs Action, or inside sdd-push without Linear. Use when asked to: update the project docs, build or rebuild the product map, update the decision log, add to the glossary, refresh the docs for PMs, the project docs are behind.'
 user-invocable: true
 disable-model-invocation: true
-argument-hint: "[--full] [--ci]"
+argument-hint: "[--full] [--ci] [--git-dir <path>]"
 ---
 
 # Project docs
@@ -34,12 +34,34 @@ Run it by hand for the first build (`/codekit init` offers it), or to check a ch
 | Flag | Effect |
 |------|--------|
 | `--ci` | Non-interactive. Never ask; take the default at every decision, and put anything a person should look at in the summary. The Action passes this. |
+| `--git-dir <path>` | Read the git input that [scripts/collect_git.sh](scripts/collect_git.sh) collected into `<path>` (`<tmp>/git`) and run no git command. The Action passes it, because its allowlist has no `git`. See [Git input](#git-input). |
 | `--full` | Rebuild the map from the whole codebase instead of updating it from the commits since the last sync. |
+
+## Working folder
+
+Run every command from the repo root and never `cd` or use `git -C`: in the Action, the allowlist matches commands as written, and a moved shell stops every later command. Reach `<tmp>` (Step 2) by absolute path.
+
+## Git input
+
+With `--git-dir <path>`, a script has already run git for you: `<plugin>/skills/project-docs/scripts/collect_git.sh [--full]`, which also puts the current docs in `<tmp>/docs/`. Read these files instead of running git, in Steps 1 to 5. If one is missing, end with `CODEKIT-RESULT: blocked git input missing`.
+
+| File | Replaces |
+|------|----------|
+| `repo.txt` | `git rev-parse --show-toplevel`, the base branch (`base=`), and `HEAD` (`head=`) |
+| `mode.txt` | `git config codekit.linear` (`mode=`), Step 3's full or incremental choice (`run=`, with `since=`), and `<sync>` |
+| `log.txt`, `messages.txt` | `git log` over the commits to cover, as a list and in full (ticket IDs come from `messages.txt`) |
+| `diffstat.txt`, `diff.patch` | `git diff` and `git show` over those commits |
+| `specs.txt` | the spec folders those commits added or changed (repo mode) |
+| `backfill/`, `backfill.txt` | `git ls-tree` and `git show <rev>:<path>` for [backfill](#backfill): the merged spec folders, and each one's date and short rev |
+
+The commits are already filtered as Step 3 describes, so use them as given.
 
 ## 1. Prerequisites
 
 - **Git repo:** `git rev-parse --show-toplevel`.
 - **Base branch (`<base-branch>`):** `git config codekit.basebranch`, else `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), else `main`.
+
+With `--git-dir`, both come from `repo.txt`.
 
 Linear mode also needs these. If either fails, stop and say why.
 
@@ -50,7 +72,7 @@ Linear mode also needs these. If either fails, stop and say why.
 
 ## 2. Get the current docs
 
-Work in the system temp folder, `${TMPDIR:-/tmp}/codekit/<repo>`, where `<repo>` is the name of the repo's top-level folder (`<tmp>` below). The OS clears it eventually. Locally, empty `<tmp>/docs/` first if an earlier run left it, so a doc that's gone isn't mistaken for current.
+With `--git-dir`, the script already did this: read the docs in `<tmp>/docs/` and go to Step 3. Otherwise, work in the system temp folder, `${TMPDIR:-/tmp}/codekit/<repo>`, where `<repo>` is the name of the repo's top-level folder (`<tmp>` below). The OS clears it eventually. Locally, empty `<tmp>/docs/` first if an earlier run left it, so a doc that's gone isn't mistaken for current.
 
 - **Linear:**
   ```bash
@@ -64,7 +86,7 @@ A doc that doesn't exist yet is fine: its step starts it from the template.
 
 ## 3. Pick full or incremental
 
-Read the sync line at the bottom of the current map: `Synced to commit <sha> on <date>.` Rebuild in **full** if any of these is true:
+With `--git-dir`, `mode.txt` holds the result (`run=`, `since=`, `sync=`) and the commits are in `log.txt`: skip to the last paragraph. Otherwise, read the sync line at the bottom of the current map: `Synced to commit <sha> on <date>.` Rebuild in **full** if any of these is true:
 - `--full` was passed
 - there's no map yet, or no sync line
 - the commit isn't in this history (`git merge-base --is-ancestor <sha> HEAD` fails, e.g. after a force-push)
@@ -116,6 +138,7 @@ Work on `<tmp>/docs/decision-log.md`. If there's none yet, start from [resources
 A new Decision Log starts with one entry per spec folder already merged, so specs written before codekit, or before `codekit init` stopped tracking `specs/`, aren't lost. Only these short entries are written. The specs themselves are never uploaded, and their full text stays in git history.
 
 - **Read from git, not from disk,** so unmerged work stays out and it works on a clone without the files. `openspec/changes/archive/` comes from `origin/<base-branch>`. So does `specs/`, unless a commit removed it from there (`git log -1 --format=%H --diff-filter=D origin/<base-branch> -- specs` prints one): then read it from that commit's parent, `<hash>^`.
+- **With `--git-dir`,** the script has already exported the folders to `backfill/`, so read them there and take each date and rev from `backfill.txt`. Otherwise:
 - **Folders:** `git ls-tree -d --name-only <rev> specs/` (or `openspec/changes/archive/`). **Files:** `git show <rev>:<path>`. Extract each folder as in item 2 above.
 - **Date** each entry by the first commit that touched its folder (the first line of `git log --reverse --format=%as <rev> -- <folder>`). Its source is the folder plus `<rev>`'s short hash, so a reader can find the full spec in history.
 
@@ -147,3 +170,5 @@ Compare `product-map.new.md` with the current map and count the capabilities add
 - **Where:** the project URL that `push` printed, or the files written.
 
 In the Action, this summary goes to the job log.
+
+With `--ci`, end the output with one fixed line, so the job log shows the outcome at a glance: `CODEKIT-RESULT: published <sync>` once `push` succeeded, else `CODEKIT-RESULT: blocked <reason>` with a one-line reason (a failed key check, a missing project, a failed push, missing git input). Never print `published` for a run that didn't publish.

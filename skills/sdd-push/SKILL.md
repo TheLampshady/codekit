@@ -25,7 +25,7 @@ The last step of the loop: a committed feature branch becomes a GitHub PR, linke
 
 ### 2. Confirm
 
-Show one summary and ask whether to proceed:
+Show one summary and confirm the target branch. A PR is always opened (or updated), so never ask whether to make one:
 
 ```
 Source:   <branch>  (<n> commit(s) ahead)
@@ -34,13 +34,13 @@ Rebase:   onto origin/<base-branch>
 Archive:  openspec/changes/<change-id> → openspec/specs/  |  already archived  |  n/a (not OpenSpec)
 Docs:     update docs/project/ and amend  |  n/a (Linear, no docs/project/, or draft)
 Push:     git push -u origin <branch>   [--force-with-lease if history was rewritten]
-PR:       create (draft? yes/no)  |  update #<number>  [+ mark ready | + back to draft]
+PR:       create into <base-branch>  |  update #<number>  [+ mark ready | + back to draft]
 Linear:   <ticket-id> "<issue title>" → link PR + move to "<review-state>" + upload spec  |  none
 ```
 
 The issue title is there so the user can catch a wrong ID before `Fixes` links it.
 
-Options: **Proceed (recommended)**, **Proceed as draft**, **Cancel**.
+Options: **Proceed to `<base-branch>` (recommended)**, **Proceed as draft**, **Change target branch**, **Cancel**. On a change, ask for the branch, set `<base-branch>` to it, and show the summary again.
 
 `<review-state>` comes from `list_issue_statuses` for the issue's team: the `started`-type state whose name contains "review" (case-insensitive), e.g. *In Review* or *Code Review*. If there's none, or there are several and none is plainly the right one, show `Linear: link PR only` and skip the move.
 

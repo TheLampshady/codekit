@@ -22,7 +22,7 @@ There's no build system and no compiled code: Markdown and JSON only. **The deli
 |------|---------|
 | `skills/<name>/SKILL.md` | Skill entry point: frontmatter plus numbered workflow steps |
 | `skills/<name>/resources/` | Templates the skill fills in (commit message, PR body, Linear comment, `.gitconfig`, the `codekit-docs.yml` workflow, the Product Map, Decision Log, and Glossary) |
-| `skills/<name>/scripts/` | Executables a skill runs by absolute path from the project root (`linear-docs` only) |
+| `skills/<name>/scripts/` | Executables a skill runs by absolute path from the project root (`linear-docs`, and `project-docs`' `collect_git.sh`, which gathers git input so the `codekit-docs` Action needs no `git` in its allowlist) |
 | `skills/<name>/references/` | Detail that `SKILL.md` links to and loads only when that step runs (e.g. `codekit/references/init.md`, `update.md`, `sdd-context.md`, one per mode or step) |
 | `skills/codekit/SKILL.md` | The hub. It holds only mode routing, the shared prerequisite checks, and the shared rules. A new step goes in the mode's reference file, not here. If init gains a new installed file or config key, `update` Step 5 must re-sync it too. |
 | `skills/project-docs/` | **The project docs**: docs for people who don't read the code, kept current from it. Today that's the Product Map, Decision Log, and Glossary. They live in the Linear project, or in `docs/project/` with `codekit.linear = false`. A new project doc gets a template in `resources/` whose first `# ` heading is its title (Linear matches documents by title), its own step in `SKILL.md`, and a line in the get and publish steps. |

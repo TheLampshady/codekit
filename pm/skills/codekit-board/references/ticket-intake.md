@@ -93,7 +93,7 @@ If the user says "skip" or "use your judgment", or leaves a question unanswered,
 
 ## 5. Confirm
 
-Show one short confirmation before anything is written to the tracker. **Don't print the full description.** The PM is checking that the request was understood and what it commits the team to, not proofreading a ticket. Keep it to about 15 lines, in the PM's terms, in this order:
+Show one short confirmation before anything is written to the tracker. **Don't print the full description.** The PM is checking that the request was understood and what it commits the team to, not proofreading a ticket. Keep it to about 17 lines, in the PM's terms, in this order:
 
 **What you're asking for**: two or three plain sentences. Who gets what, what changes for them, and what this ticket deliberately leaves out.
 
@@ -104,9 +104,11 @@ Show one short confirmation before anything is written to the tracker. **Don't p
 - **Risk**: the single biggest grounded concern in the board or docs: a conflict or overlap with another ticket or rule (with its ID), a dependency that could delay it, coordination outside the team or a third-party integration (rung 5 or 6), or an assumption whose answer would change scope. If there are more, add them as short sub-lines.
 - **Cost**: beyond build effort, only what the request or docs name, such as a paid third-party service, new infrastructure, or message volume. If nothing is named, write "None known beyond build effort". Never guess a dollar figure.
 
+**Dependencies**: what must ship first, as "Blocked by ABC-12 Title (status)", and what this ticket blocks, as "Blocks ABC-15 Title". Tickets should stand alone, so write "None, can be built on its own" when that's true. If a dependency is avoidable, say how to remove it, such as narrowing scope or splitting differently, and recommend that. When a split's tickets depend on each other, show the order.
+
 **Open assumptions**: defaults you applied instead of asking, each one line, so the PM can reject any.
 
-**Ticket card**, one line each: title · Type and labels · cycle (name and dates), state, and board · parent and links with ID and title.
+**Ticket card**, one line each: title · Type and labels · cycle (name and dates), state, and board · parent and links with ID and title (the same blocked-by and related links that step 6 creates).
 
 If any of the four has nothing grounded, say so in a few words instead of padding it.
 

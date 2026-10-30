@@ -71,6 +71,17 @@ jobs:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 0
 
+      # Runs git for the skill, so its allowlist needs no `git` and the run
+      # never depends on a shell approval. Writes to <runner.temp>/codekit/<repo>.
+      - name: Collect git input
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          TMPDIR: ${{ runner.temp }}
+          FULL: ${{ inputs.full && '--full' || '' }}
+        run: |
+          git clone --depth 1 https://github.com/TheLampshady/codekit.git "$RUNNER_TEMP/codekit-plugin"
+          "$RUNNER_TEMP/codekit-plugin/skills/project-docs/scripts/collect_git.sh" $FULL
+
       - uses: anthropics/claude-code-action@v1
         id: claude
         env:
@@ -83,20 +94,27 @@ jobs:
           github_token: ${{ github.token }}
           plugin_marketplaces: https://github.com/TheLampshady/codekit.git
           plugins: codekit@codekit-marketplace
-          prompt: /codekit:project-docs --ci ${{ inputs.full && '--full' || '' }}
+          prompt: /codekit:project-docs --ci --git-dir ${{ runner.temp }}/codekit/${{ github.event.repository.name }}/git ${{ inputs.full && '--full' || '' }}
           claude_args: >-
             --add-dir ${{ runner.temp }}
-            --allowedTools "Read,Glob,Grep,Write,Edit,Bash(cp *),Bash(mkdir *),Bash(git config *),Bash(git symbolic-ref *),Bash(git log *),Bash(git diff *),Bash(git rev-parse *),Bash(git merge-base *),Bash(git ls-files *),Bash(git ls-tree *),Bash(git show *),Bash(python3 *)"
+            --allowedTools "Read,Glob,Grep,Write,Edit,Bash(cp *),Bash(mkdir *),Bash(python3 *)"
 
       # A denied tool doesn't fail the action, so the docs could silently go
-      # unpublished. Fail the job and name the tools to add to --allowedTools.
-      - name: Check for denied tools
+      # unpublished. Fail the job and name the tools to add to --allowedTools,
+      # or the reason the skill gave when it stopped.
+      - name: Check the result
         if: always() && steps.claude.outputs.execution_file != ''
         env:
           LOG: ${{ steps.claude.outputs.execution_file }}
         run: |
+          result=$(jq -r '[.[] | select(.type == "result") | .result // empty] | join("\n")' "$LOG" | grep -o 'CODEKIT-RESULT: .*' | tail -1 || true)
+          echo "${result:-CODEKIT-RESULT: none}"
           denied=$(jq -r '[.[] | select(.type == "result") | .permission_denials[]?.tool_name] | unique | join(", ")' "$LOG")
           if [ -n "$denied" ]; then
             echo "::error::Claude was denied: $denied. The docs may not have been published. Add them to --allowedTools in this workflow."
             exit 1
           fi
+          case "$result" in
+            "CODEKIT-RESULT: published"*) ;;
+            *) echo "::error::The docs were not published. ${result:-The skill printed no CODEKIT-RESULT line.}"; exit 1 ;;
+          esac
