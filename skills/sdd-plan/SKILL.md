@@ -93,7 +93,7 @@ Name the work `<feature-slug>`: a kebab-case slug of the title, prefixed with th
 2. Run `/speckit.specify` (or the `speckit-specify` skill) with `<ticket-contents>` as the feature description and `SPECIFY_FEATURE_DIRECTORY=specs/<feature-slug>`, so the folder is named for the ticket instead of numbered. SpecKit records it in `.specify/feature.json`.
 3. **Branch guard:** if SpecKit's opt-in `git` extension checked out a numbered branch (e.g. `001-...`), run `git checkout <branch-name>` to switch back. Ask before deleting the extra branch. Suggest disabling that extension in [docs/extensions/speckit.md](../../docs/extensions/speckit.md).
 4. Run `/speckit.clarify` and put its questions to the user. Wait for answers.
-5. Post the clarifications to Linear (Step 7), then run `/speckit.plan`.
+5. Once they're answered, don't summarize or ask whether to continue. Post the clarifications to Linear (Step 7), then run `/speckit.plan` yourself in the same turn. Stop there: don't run `/speckit.tasks`, and ignore SpecKit's own next-step suggestions. `sdd-implement` generates the tasks.
 
 If a SpecKit command isn't installed, stop and suggest `/codekit update`, which installs and refreshes the framework's commands. Don't do the framework's work by hand.
 
@@ -120,7 +120,7 @@ Only if this is a Linear issue **and** clarifications were asked and answered.
 
 ### 8. Summary
 
-One line each: the issue and its new state (or "local spec"), the branch, and the plan files' paths. Next is reviewing the plan here, then `/sdd-implement`.
+One line each: the issue and its new state (or "local spec"), the branch, and the plan files' paths. Next is reviewing the plan here, then `/sdd-implement`. Name only `/sdd-implement` as the next step, never `/speckit.tasks`, `/speckit.analyze`, or other framework commands.
 
 ## Base branch
 
