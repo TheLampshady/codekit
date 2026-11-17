@@ -1,6 +1,6 @@
 ---
 name: sdd-push
-description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Confirms the plan, rebases on the base branch (resolving conflicts), archives OpenSpec changes, updates the project docs in docs/project/ when the repo does not use Linear, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
+description: 'Open or update a GitHub pull request for the current feature branch with the gh CLI. Asks for the base branch only the first time, then rebases on the base branch (resolving conflicts), archives OpenSpec changes, updates the project docs in docs/project/ when the repo does not use Linear, pushes, creates the PR with a templated body that links the Linear issue, and moves the issue to In Review. Use when asked to: open a PR, create a pull request, push for review, submit for review, send it, update the PR.'
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[--draft] [base-branch]"
@@ -15,7 +15,7 @@ The last step of the loop: a committed feature branch becomes a GitHub PR, linke
 ### 1. Preflight
 
 1. **gh:** run `gh auth status`. If gh isn't installed or authenticated, stop and tell the user to run `! gh auth login`.
-2. **Base branch (`<base-branch>`):** use the branch named in the prompt, else `git config codekit.basebranch`, else `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`. Offer once to save a detected value: `git config -f .config/.gitconfig codekit.basebranch <branch>` (`--local` if that file doesn't exist).
+2. **Base branch (`<base-branch>`):** use the branch named in the prompt, else `git config codekit.basebranch`. Either one is used without asking. If neither is set, detect it with `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` and ask once, with options **Use `<detected>` and save (recommended)** and **Use another branch**. Save the chosen branch with `git config -f .config/.gitconfig codekit.basebranch <branch>` (`--local` if that file doesn't exist), so later runs don't ask.
 3. **Branch:** `git branch --show-current` must not be `<base-branch>`. If it is, stop. If it prints nothing, HEAD is detached, usually by a rebase in progress. Stop too. If `git status` shows a rebase in progress, `resolve-conflict` resumes it.
 4. **Uncommitted changes:** if `git status --porcelain` isn't empty, ask whether to commit first. On a yes, read [../sdd-commit/SKILL.md](../sdd-commit/SKILL.md) and follow it, then continue here.
 5. **Commits:** `git rev-list --count origin/<base-branch>..HEAD` must be ≥1. If it's more than one, mention it. That's fine, so don't squash unasked.
@@ -23,13 +23,13 @@ The last step of the loop: a committed feature branch becomes a GitHub PR, linke
 7. **Ticket ID:** if `git config codekit.linear` is `false`, run in no-ticket mode. Otherwise, take it from the branch's commits (`git log --format=%B origin/<base-branch>..HEAD`, newest first), but only from a `[<ID>] ::` subject or a `Linear:` line (an ID, or the ID in an issue URL), which `sdd-commit` already checked. Never from elsewhere in a message: a body line like "read files as UTF-8" looks like an ID too. Failing that, use a Linear identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, but only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, `get_issue` finds it. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`). If there's no ID, run in no-ticket mode.
 8. **Issue (ticket mode):** call `get_issue` once with `fields: ["title", "description", "team", "status", "statusType"]`, and reuse the result in Steps 2 and 4. Step 5 fetches again, after the PR exists. If Linear says the issue doesn't exist, warn and run in no-ticket mode. If Linear can't be reached, keep the ID, warn, and expect the Linear steps to fail.
 
-### 2. Confirm
+### 2. Summary
 
-Show one summary and confirm the target branch. A PR is always opened (or updated), so never ask whether to make one:
+Show one summary, then continue without asking. A PR is always opened (or updated), and the target was settled in preflight. It's a draft only when the prompt says so (`--draft`):
 
 ```
 Source:   <branch>  (<n> commit(s) ahead)
-Target:   <base-branch>  (from <config | gh default | prompt>)
+Target:   <base-branch>  (from <config | prompt | just saved>)
 Rebase:   onto origin/<base-branch>
 Archive:  openspec/changes/<change-id> → openspec/specs/  |  already archived  |  n/a (not OpenSpec)
 Docs:     update docs/project/ and amend  |  n/a (Linear, no docs/project/, or draft)
@@ -39,8 +39,6 @@ Linear:   <ticket-id> "<issue title>" → link PR + move to "<review-state>" + u
 ```
 
 The issue title is there so the user can catch a wrong ID before `Fixes` links it.
-
-Options: **Proceed to `<base-branch>` (recommended)**, **Proceed as draft**, **Change target branch**, **Cancel**. On a change, ask for the branch, set `<base-branch>` to it, and show the summary again.
 
 `<review-state>` comes from `list_issue_statuses` for the issue's team: the `started`-type state whose name contains "review" (case-insensitive), e.g. *In Review* or *Code Review*. If there's none, or there are several and none is plainly the right one, show `Linear: link PR only` and skip the move.
 
@@ -77,7 +75,7 @@ If two PRs that both touch the same capability are open at once, whichever merge
    <body>
    EOF
    ```
-   **Update:** `gh pr edit <number> --body-file -` (same heredoc). Change the title only if the user asks. If the PR is a draft and the user chose **Proceed**, also run `gh pr ready <number>`. If it's ready and they chose **Proceed as draft**, run `gh pr ready <number> --undo`.
+   **Update:** `gh pr edit <number> --body-file -` (same heredoc). Change the title only if the user asks. If the PR is ready and the prompt says `--draft`, run `gh pr ready <number> --undo`. If it's a draft and the prompt asks to mark it ready, run `gh pr ready <number>`. Otherwise leave its state.
 5. Capture `<pr-url>` from the output, or from `gh pr view --json url -q .url`.
 
 Reviewers: if `git config codekit.reviewers` holds a comma-separated list of GitHub handles, add `--reviewer <list>`. Otherwise rely on CODEOWNERS and don't prompt for reviewers.
