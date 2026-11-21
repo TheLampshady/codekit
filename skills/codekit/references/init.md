@@ -103,7 +103,7 @@ The [project docs](../../project-docs/SKILL.md) are the Product Map, Decision Lo
 
    > Build the project docs now? The Product Map is written from the code, and the Decision Log starts with the decisions in the specs already merged, so nothing is lost when `specs/` stops being tracked. It reads the whole codebase once, so it takes a while.
 
-   On a yes, read [../../project-docs/SKILL.md](../../project-docs/SKILL.md) and follow it. If it's declined, the Action's first run builds them, specs included. Without Linear, `/project-docs` builds them whenever the user is ready.
+   On a yes, run the `project-docs` skill. If it's declined, the Action's first run builds them, specs included. Without Linear, `/project-docs` builds them whenever the user is ready.
 
 ## 8. Verify and summarize
 

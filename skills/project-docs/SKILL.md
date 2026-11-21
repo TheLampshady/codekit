@@ -1,8 +1,8 @@
 ---
 name: project-docs
-description: 'Keep the app''s project docs current for people who don''t read the code: a Product Map (what the app does and what its data and interfaces support, in product language, each entry linked to code), a Decision Log (what was decided and why, from each shipped spec), and a Glossary. They live in the app''s Linear project, or in docs/project/ when the repo doesn''t use Linear. Updates only what changed since the last sync; the first build also logs the decisions in specs already merged. Runs after each merge from the codekit-docs Action, or inside sdd-push without Linear. Use when asked to: update the project docs, build or rebuild the product map, update the decision log, add to the glossary, refresh the docs for PMs, the project docs are behind.'
+description: 'Update the Product Map, Decision Log, and Glossary from what changed since the last sync, in the Linear project or docs/project/. Started by sdd-push, codekit init, and the codekit-docs Action. Run it only when another codekit skill calls for it or the user names project-docs.'
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[--full] [--ci] [--git-dir <path>]"
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: code-review-local
-description: 'Review the current branch''s changes against the base branch before opening a PR. Checks the diff against the SpecKit/OpenSpec spec or the hand-written plan for completeness, plus correctness, security, and the project''s conventions, then saves a report with blockers and suggestions. Use when asked to: review my code, review my changes, check my work, self-review, local review, is this ready for a PR.'
+description: 'Review the current branch against the base branch and its spec or plan, and save a report of blockers and suggestions. Started by sdd-commit. Run it only when another codekit skill calls for it or the user names code-review-local.'
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 context: fork
 agent: general-purpose
 background: false

@@ -81,7 +81,7 @@ Use `git commit --amend -F -` for amend or reword.
 
 ### 6. Review and summary
 
-1. Run the local review, unless the user said to skip it. Its instructions are in [../code-review-local/SKILL.md](../code-review-local/SKILL.md). If you can start a subagent (Claude Code's Agent tool, `general-purpose`), give it that file's path and `<base-branch>`, and tell it to follow the file. That way the review comes from a reviewer that hasn't seen this conversation. Otherwise, follow the file here.
+1. Run the local review, unless the user said to skip it. Run the `code-review-local` skill with `<base-branch>`. In Claude Code it runs as a forked subagent, so the review comes from a reviewer that hasn't seen this conversation.
 2. **Claude Code only:** if the built-in `code-review` skill is available, also run it on the current branch at its default level, alongside the local review. Merge its findings into the local review's result, dropping duplicates, and treat its correctness bugs as **Blockers**. Skip this in Antigravity, or when the user said to skip the review.
 3. Surface any **Blockers** prominently.
 4. End with the short hash, the subject, new or amended, and the review result. Next is `/sdd-push`, or fixing blockers and running `/sdd-commit` again, which amends.

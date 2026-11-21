@@ -1,8 +1,8 @@
 ---
 name: linear-docs
-description: 'Keep a spec folder''s decision-bearing files (spec, plan, research; OpenSpec proposal, design) on its Linear issue as documents, the spec''s copy of record, since spec folders aren''t committed. Uploads or pulls without passing file text through the model, using a Linear API key, not the MCP. Use when asked to: sync, upload, push, publish, or refresh spec docs on a Linear issue, pull a spec back from its issue, resume a spec on another machine.'
+description: 'Upload a spec folder''s spec, plan, and research to its Linear issue as documents, or pull them back, with a Linear API key. Started by sdd-push. Run it only when another codekit skill calls for it or the user names linear-docs.'
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 context: fork
 agent: general-purpose
 background: false
