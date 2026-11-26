@@ -8,9 +8,9 @@
 | `/sdd-implement` | `/opsx:apply <change-id>` |
 | `/sdd-push` | `/opsx:archive <change-id>`, in the feature's PR after the rebase |
 
-codekit names changes `<ticket-id>-<slug>` (e.g. `eng-123-add-login`), so `openspec list` maps back to Linear at a glance.
+codekit names changes after their ticket (e.g. `eng-123-add-login` in Linear, `123-add-login` in GitLab), so `openspec list` maps back to the tracker at a glance.
 
-Unlike SpecKit projects, where codekit keeps specs out of the repo, OpenSpec's living spec (`openspec/specs/`) is committed by design, so OpenSpec PRs include spec text. `sdd-push` still uploads `proposal.md` and `design.md` to the issue, so the `codekit-docs` Action can add the change's decisions to the Decision Log.
+Unlike SpecKit projects, where codekit keeps specs out of the repo, OpenSpec's living spec (`openspec/specs/`) is committed by design, so OpenSpec PRs include spec text. `sdd-push` still uploads `proposal.md` and `design.md` to the tracker (the Linear issue, or the GitLab wiki), so the `codekit-docs` CI job can add the change's decisions to the Decision Log.
 
 ## Install
 

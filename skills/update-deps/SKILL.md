@@ -1,6 +1,6 @@
 ---
 name: update-deps
-description: 'Upgrade a project''s dependencies to their latest versions safely, in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches every major bump through Context7 and web search, applies everything that verifies green as one batch, then brings the user only the decisions that need a human: a short card per update that requires a code change or fails, plus new features the project could use, implemented now or filed as a Linear issue. Use when asked to: update dependencies, upgrade packages, bump a package, refresh the lockfile, fix outdated or stale packages, clear dependabot alerts, what''s new in a library, move to a new major version.'
+description: 'Upgrade a project''s dependencies to their latest versions safely, in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches every major bump through Context7 and web search, applies everything that verifies green as one batch, then brings the user only the decisions that need a human: a short card per update that requires a code change or fails, plus new features the project could use, implemented now or filed as an issue in the tracker. Use when asked to: update dependencies, upgrade packages, bump a package, refresh the lockfile, fix outdated or stale packages, clear dependabot alerts, what''s new in a library, move to a new major version.'
 user-invocable: true
 disable-model-invocation: true
 argument-hint: "[package ...]"
@@ -27,7 +27,7 @@ Do this for every major bump, and every minor bump on a 0.x package, before deci
 
 ## Phase 1: Discover
 
-**Get off the base branch.** Resolve `<base-branch>`: `git config codekit.basebranch`, then `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), then `main`. If you're on it, offer to create `deps/<YYYY-MM-DD>` before touching anything: `git fetch origin <base-branch>`, then `git checkout --no-track -b deps/<YYYY-MM-DD> origin/<base-branch>` (from the local branch if there's no `origin`). `sdd-commit` refuses to commit to the base branch. Keep the name free of anything shaped like a ticket ID: `deps/update-2026-10-22` reads as `UPDATE-2026`.
+**Get off the base branch.** Resolve `<base-branch>`: `git config codekit.basebranch`, then `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), then `main`. If you're on it, offer to create `deps/<YYYYMMDD>` before touching anything: `git fetch origin <base-branch>`, then `git checkout --no-track -b deps/<YYYYMMDD> origin/<base-branch>` (from the local branch if there's no `origin`). `sdd-commit` refuses to commit to the base branch. Keep the name free of anything shaped like a ticket ID: `deps/update-2026-10-22` reads as Linear's `UPDATE-2026`, and `deps/2026-10-22` as GitLab's issue `#2026`.
 
 **Find every manifest** (`pyproject.toml`, `requirements*.txt`, `package.json`, `Cargo.toml`, `go.mod`, …), skipping `node_modules`, `.venv`, and build output. Expect more than one ecosystem, and more than one manifest per ecosystem (workspaces, monorepos). Take the package manager from the lockfile beside each manifest (`uv.lock` → uv, `bun.lock` → bun, `pnpm-lock.yaml` → pnpm), not from what's installed globally.
 
@@ -37,7 +37,7 @@ Do this for every major bump, and every minor bump on a 0.x package, before deci
 
 **Baseline.** Run the verification command before changing anything, and record any failures as pre-existing, so later ones aren't blamed on the wrong package. If `git status` shows a dirty tree, leave those changes alone and note the files, so Phase 5 keeps them out of the commit.
 
-**Security alerts.** If `gh` is authenticated and the repo is on GitHub, run:
+**Security alerts.** If the `origin` remote is on GitHub and `gh` is authenticated, run:
 ```bash
 gh api "repos/{owner}/{repo}/dependabot/alerts?state=open&per_page=100" \
   --jq '.[] | "\(.number)\t\(.security_vulnerability.package.name)\t\(.security_vulnerability.vulnerable_version_range)\tfixed: \(.security_vulnerability.first_patched_version.identifier // "none")\t\(.security_advisory.severity)"'
@@ -99,15 +99,11 @@ For each package that moved a meaningful distance (a major, or a minor whose not
 **<package> <version>**: <feature in one sentence>. Fits because <what in this project it would improve, one clause>.
 ```
 
-Ask in one multi-select: **implement now** (do it, verify, and report it), **file a Linear issue** (below), or **skip**. When unattended, list them under "Waiting on you" and file nothing.
+Ask in one multi-select: **implement now** (do it, verify, and report it), **file an issue** (below), or **skip**. When unattended, list them under "Waiting on you" and file nothing.
 
-**Filing an issue.** If `git config codekit.linear` is `false`, don't file: put the issue text in the report under "Not filed". Otherwise use the team from `git config codekit.linear-team`. If that's unset, call `list_teams`, ask once, and offer to save it with `git config -f .config/.gitconfig codekit.linear-team <team-key>` (`--local` if that file doesn't exist).
+**Filing an issue.** `git config codekit.tracker` names the tracker. With `none`, or unset, don't file: put the issue text in the report under "Not filed". Otherwise follow its file, [references/linear.md](references/linear.md) or [references/gitlab.md](references/gitlab.md): reuse an open issue with the same title if there is one, else create it with the title `<Package>: <feature name>` and the description from the template below, related to the branch's own ticket when it has one.
 
-1. Call `list_issues` with that `team` and the title as `query`. If an open issue with the same title exists, reuse it.
-2. Otherwise call `save_issue` with `team`, `project` (from `git config codekit.linear-project`, if set), `title: "<Package>: <feature name>"`, and `description` from the template below.
-3. If the branch name carries a Linear ID (`[A-Za-z][A-Za-z0-9]+-\d+`, uppercased) whose prefix is the team key, or that `get_issue` finds, pass it as `relatedTo`. Version numbers match the same pattern, and a `relatedTo` that doesn't exist fails the whole filing.
-
-If Linear fails, warn, put the issue text under "Not filed", and carry on: a failed filing never undoes the update. Write the issue so a developer can pick it up cold in two months:
+If the tracker fails, warn, put the issue text under "Not filed", and carry on: a failed filing never undoes the update. Write the issue so a developer can pick it up cold in two months:
 
 ```markdown
 **Package:** <name> <version it arrived in>
@@ -144,9 +140,9 @@ End with one report that stands alone: someone who didn't watch the session shou
 ### Blocked
 | Package | From | Latest | Error |
 
-### Linear issues
+### Issues
 - <ID>: <title>, filed or reused
-<"Not filed" entries with the full issue text, if Linear failed>
+<"Not filed" entries with the full issue text, if the tracker failed or there is none>
 
 ### Waiting on you   <!-- only when unattended -->
 <the cards and feature list>

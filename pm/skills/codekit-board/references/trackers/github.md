@@ -19,7 +19,7 @@ A repo (`owner/repo`), and optionally a GitHub Project for status and iterations
 | Current cycle | The Project's iteration field (`list_project_fields`) | Use the iteration whose dates include today. No Project, or no iteration field, means no cycles. |
 | Templates | `get_file_contents` on `.github/ISSUE_TEMPLATE/` | Markdown templates: use their headings. Issue forms (`.yml`): use each field's label as a `###` heading, which is how GitHub shows a submitted form. |
 | Project status | `projects_list` (`list_project_items`, `list_project_status_updates`), and issues' milestones | |
-| Project docs | `get_file_contents` on `docs/project/product-map.md`, `glossary.md`, and `decision-log.md` | Where codekit writes them when a repo doesn't use Linear |
+| Project docs | `get_file_contents` on `docs/project/product-map.md`, `glossary.md`, and `decision-log.md` | Where codekit writes them when the repo has no tracker |
 | Create | `issue_write` (`create`), then follow-ups | See below |
 
 ## Create

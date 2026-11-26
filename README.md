@@ -1,15 +1,15 @@
 # codekit
 
-> Spec-driven development from Linear issue to GitHub pull request, as a plugin for **Claude Code** and **Antigravity**.
+> Spec-driven development from a Linear or GitLab issue to a GitHub pull request or GitLab merge request, as a plugin for **Claude Code** and **Antigravity**.
 
-codekit gives your coding agent four skills that run the daily loop: pick up a Linear issue, plan it with SpecKit or OpenSpec, implement it, commit it, and open the PR. The Linear issue stays in sync the whole way. A companion plugin, `codekit-board`, lets PMs turn requests into those issues.
+codekit gives your coding agent four skills that run the daily loop: pick up an issue, plan it with SpecKit or OpenSpec, implement it, commit it, and open the pull request (GitHub) or merge request (GitLab). The issue stays in sync the whole way. Your tickets can live in Linear, in GitLab issues on any GitLab (gitlab.com, self-managed, Community Edition), or nowhere at all. A companion plugin, `codekit-board`, lets PMs turn requests into those issues.
 
 ## How it works
 
 ### Create a ticket
 
 ```
- Feature request ────► /codekit-board ────► Questions ────► Linear issue
+ Feature request ────► /codekit-board ────► Questions ────► Issue
                        │ Claude app         │ checks board, │ created after
                        └ PM plugin          │ Product Map,  └ you confirm
                                             └ Decision Log
@@ -20,28 +20,13 @@ A PM describes the request in the Claude app. `/codekit-board` checks the board 
 ### Build it
 
 ```
- Linear issue ──► /sdd-plan ──► /sdd-implement ──► /sdd-commit ──► /sdd-push ──► GitHub PR ──► merge
-                   │ branch        │ tasks + code     │ commit +       │ rebase, push,            │ codekit-docs Action
-                   │ In Progress   │ converge         │ local review   │ PR, In Review            │ Product Map, Decision Log,
-                   └ spec (local)  │ tests + lint                    └ spec → issue             └ Glossary in Linear
+ Issue ──► /sdd-plan ──► /sdd-implement ──► /sdd-commit ──► /sdd-push ──► PR / MR ──► merge
+            │ branch        │ tasks + code     │ commit +       │ rebase, push,          │ codekit-docs CI job
+            │ In Progress   │ converge         │ local review   │ PR, In Review          │ Product Map, Decision Log,
+            └ spec (local)  │ tests + lint                    └ spec → tracker         └ Glossary in the tracker
 ```
 
-Code goes in GitHub, prose goes in Linear. With SpecKit (or no framework), spec folders stay local while you work, where SpecKit expects them, and are gitignored. At PR time the spec, plan, and research go to the Linear issue, so PRs show code only. After merge, the decisions are pulled into the project's Decision Log, kept for reference only.
-
-## Requirements
-
-| Tool | Needed for | Setup |
-|------|-----------|-------|
-| Claude Code or Antigravity | Everything | — |
-| Git + a GitHub remote | Everything | — |
-| [GitHub CLI](https://cli.github.com/) (`gh`) | `sdd-push` | `gh auth login` |
-| Linear MCP | `sdd-plan`, `sdd-push`, ticket context | Bundled. Authenticate once (see below). |
-| `LINEAR_API_KEY` + Python 3.10+ | `linear-docs`, `project-docs` (with Linear) | A personal API key exported in your shell profile. Needed with SpecKit or no framework, where the Linear issue holds the spec. Optional with OpenSpec. |
-| Context7 MCP | Up-to-date library docs while planning and updating dependencies | Bundled. Works without an account; add an API key for higher rate limits. |
-| [uv](https://docs.astral.sh/uv/) | Installing SpecKit and pre-commit | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| SpecKit **or** OpenSpec | Optional | `/codekit init` offers to install and set one up. Without one, the skills plan and implement by hand. See [docs/extensions/](docs/extensions/). |
-
-Full walkthrough: **[docs/SETUP.md](docs/SETUP.md)**.
+Code goes in the repo, prose goes where the tickets are. With SpecKit (or no framework), spec folders stay local while you work, where SpecKit expects them, and are gitignored. At PR time the spec, plan, and research go to the tracker (the Linear issue, or the GitLab project's wiki), so PRs show code only. After merge, the decisions are pulled into the project's Decision Log, kept for reference only. With no tracker, specs and the project docs stay committed in the repo.
 
 ## Install
 
@@ -64,11 +49,13 @@ git clone https://github.com/TheLampshady/codekit.git ~/.gemini/config/plugins/c
 ```
 Then restart the IDE.
 
-Then connect Linear once:
+If your tickets are in Linear, connect it once:
 - **Claude Code:** run `/mcp`, select `linear`, and complete the OAuth flow in the browser.
 - **Antigravity:** open the MCP servers panel and sign in to `linear`.
 
-In each project you want to use it in, run `/codekit init` once. It asks whether the repo uses Linear (optional), won't continue until `gh` and `uv` work (plus the Linear MCP if you use Linear), then offers to set up SpecKit or OpenSpec for you. Run `/codekit update` from time to time to upgrade the tools and pick up changes from newer codekit releases. In Claude Code, plugin skills are namespaced, so the full commands are `/codekit:codekit init` and `/codekit:codekit update`.
+GitLab needs no connection beyond `glab auth login`.
+
+In each project you want to use it in, run `/codekit init` once. It asks where the repo's tickets live (Linear, GitLab issues, or none), won't continue until your code host's CLI (`gh` or `glab`) and `uv` work (plus the Linear MCP if you use Linear), then offers to set up SpecKit or OpenSpec for you. Run `/codekit update` from time to time to upgrade the tools and pick up changes from newer codekit releases. In Claude Code, plugin skills are namespaced, so the full commands are `/codekit:codekit init` and `/codekit:codekit update`.
 
 ### Updating codekit
 
@@ -80,27 +67,44 @@ In each project you want to use it in, run `/codekit init` once. It asks whether
 
 After updating, run `/codekit update` in each project to pick up anything the new version changed.
 
+## Requirements
+
+| Tool | Needed for | Setup |
+|------|-----------|-------|
+| Claude Code or Antigravity | Everything | — |
+| Git + a GitHub or GitLab remote | Everything | — |
+| [GitHub CLI](https://cli.github.com/) (`gh`) **or** [GitLab CLI](https://gitlab.com/gitlab-org/cli) (`glab`) | `sdd-push`, and GitLab issues | The one for your code host: `gh auth login`, or `glab auth login --hostname <host>` (self-managed and IP-address hosts work too) |
+| Linear MCP | With Linear: `sdd-plan`, `sdd-push`, ticket context | Bundled. Authenticate once (see [Install](#install)). |
+| `LINEAR_API_KEY` + Python 3.10+ | With Linear: `linear-docs`, `project-docs` | A personal API key exported in your shell profile. Needed with SpecKit or no framework, where the Linear issue holds the spec. Optional with OpenSpec. |
+| The project's wiki + Python 3.10+ | With GitLab issues: `wiki-docs`, `project-docs` | Turned on in the project (it is by default). Reached through git with the login you already use for the code, so there's no key. |
+| Context7 MCP | Up-to-date library docs while planning and updating dependencies | Bundled. Works without an account; add an API key for higher rate limits. |
+| [uv](https://docs.astral.sh/uv/) | Installing SpecKit and pre-commit | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| SpecKit **or** OpenSpec | Optional | `/codekit init` offers to install and set one up. Without one, the skills plan and implement by hand. See [docs/extensions/](docs/extensions/). |
+
+Full walkthrough: **[docs/SETUP.md](docs/SETUP.md)**.
+
 ## Skills
 
 | Skill | What it does |
 |-------|--------------|
-| [`sdd-plan`](skills/sdd-plan/SKILL.md) | Pulls a Linear issue (by ID, URL, or `next`), assigns it and moves it to *In Progress*, checks out Linear's branch name, then runs SpecKit specify → clarify → plan or OpenSpec explore → propose. Posts clarification answers back to the issue. |
+| [`sdd-plan`](skills/sdd-plan/SKILL.md) | Pulls an issue (by ID, URL, or `next`: `ENG-123` in Linear, `#123` in GitLab), assigns it and moves it to *In Progress*, checks out the tracker's branch name, then runs SpecKit specify → clarify → plan or OpenSpec explore → propose. Posts clarification answers back to the issue. |
 | [`sdd-implement`](skills/sdd-implement/SKILL.md) | Runs SpecKit tasks → implement → converge or OpenSpec apply, or implements the plan by hand following `docs/FOUNDATIONS.md` and the project's conventions. Runs tests and linters. |
-| [`sdd-commit`](skills/sdd-commit/SKILL.md) | Commits to the feature branch with the project's template, tagged with the Linear ID and linked to the issue. Amends the existing commit on later runs, retries after formatter hooks, then runs a local review. |
-| [`sdd-push`](skills/sdd-push/SKILL.md) | Rebases, archives OpenSpec changes in the same PR, pushes, opens or updates the PR with `gh`, and uploads the final spec to the issue. The body includes `Fixes ENG-123`, and the issue gets the PR link and moves to *In Review*. |
+| [`sdd-commit`](skills/sdd-commit/SKILL.md) | Commits to the feature branch with the project's template, tagged with the ticket ID and linked to the issue. Amends the existing commit on later runs, retries after formatter hooks, then runs a local review. |
+| [`sdd-push`](skills/sdd-push/SKILL.md) | Rebases, archives OpenSpec changes in the same PR, pushes, opens or updates the pull request with `gh` or the merge request with `glab`, and uploads the final spec to the tracker. The body includes `Fixes ENG-123` or `Fixes #123`, and the issue is linked and moves to *In Review*. |
 
 Supporting skills, also callable on their own:
 
 | Skill | What it does |
 |-------|--------------|
-| [`codekit`](skills/codekit/SKILL.md) | **`init`:** repo setup. Checks gh, the Linear MCP and uv; sets up SpecKit or OpenSpec; installs the commit template, pre-commit and shared codekit git config; writes the constitution or OpenSpec `config.yaml` from codekit's principles plus patterns found in your code. **`update`:** upgrades uv, specify, openspec, pre-commit and gh, refreshes the framework's project files, and re-syncs the config and constitution with the current plugin. `init` also sets up the project docs: it offers their first build, then the Action that keeps them current (with Linear) or a pre-push warning (without). |
-| [`project-docs`](skills/project-docs/SKILL.md) | Keeps the app's project docs current for PMs who don't read the code: a Product Map (what the app does and what its data and interfaces support, in product language, each entry linked to code), a Decision Log (what was decided and why, from each shipped spec), and a Glossary. With Linear they're documents in the app's Linear project, updated after every merge by the `codekit-docs` Action. Without Linear they're files in `docs/project/`, updated by `sdd-push` in each PR. The first build also logs the decisions in specs already merged, so none are lost when `specs/` stops being tracked. |
+| [`codekit`](skills/codekit/SKILL.md) | **`init`:** repo setup. Picks the tracker; checks gh or glab, the tracker, and uv; sets up SpecKit or OpenSpec; installs the commit template, pre-commit and shared codekit git config; writes the constitution or OpenSpec `config.yaml` from codekit's principles plus patterns found in your code. **`update`:** upgrades uv, specify, openspec, pre-commit and gh or glab, refreshes the framework's project files, and re-syncs the config and constitution with the current plugin. `init` also sets up the project docs: it offers their first build, then the CI job that keeps them current (with a tracker) or a pre-push warning (without). |
+| [`project-docs`](skills/project-docs/SKILL.md) | Keeps the app's project docs current for PMs who don't read the code: a Product Map (what the app does and what its data and interfaces support, in product language, each entry linked to code), a Decision Log (what was decided and why, from each shipped spec), and a Glossary. They live where the tickets do, updated after every merge by the `codekit-docs` CI job: documents in the app's Linear project, or pages in the GitLab project's wiki. Without a tracker they're files in `docs/project/`, updated by `sdd-push` in each PR. The first build also logs the decisions in specs already merged, so none are lost when `specs/` stops being tracked. |
 | [`code-review-local`](skills/code-review-local/SKILL.md) | Reviews the branch against its spec and the project's constitution, and writes a report to the system temp folder, so nothing lands in the repo. In Claude Code it runs as a separate agent that hasn't seen your conversation, so it judges the code against the spec rather than against what was discussed. |
 | [`resolve-conflict`](skills/resolve-conflict/SKILL.md) | Rebases onto the base branch and resolves conflicts with you, never silently picking a side. |
-| [`linear-docs`](skills/linear-docs/SKILL.md) | Keeps the spec's decision-bearing files (spec, plan, research) on the Linear issue as documents, the spec's copy of record, through Linear's API (not the MCP), so file contents never pass through the model. Run by `sdd-push` at PR time. Can also pull a spec back down from the issue. |
-| [`update-deps`](skills/update-deps/SKILL.md) | Upgrades dependencies in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches each major bump, applies everything that passes your checks as one batch, and asks you only about updates that need a code change. New features worth adopting become Linear issues. Commits through `sdd-commit`. |
+| [`linear-docs`](skills/linear-docs/SKILL.md) | With Linear: keeps the spec's decision-bearing files (spec, plan, research) on the Linear issue as documents, the spec's copy of record, through Linear's API (not the MCP), so file contents never pass through the model. Run by `sdd-push` at PR time. Can also pull a spec back down from the issue. |
+| [`wiki-docs`](skills/wiki-docs/SKILL.md) | With GitLab issues: the same for the GitLab project's wiki, under `specs/<folder>/`. The wiki is a git repo, so it syncs through git with your existing login, on any GitLab host. Run by `sdd-push` at PR time. Can also pull a ticket's spec back down. |
+| [`update-deps`](skills/update-deps/SKILL.md) | Upgrades dependencies in any ecosystem (uv, pip, poetry, npm, bun, pnpm, yarn, cargo, go). Researches each major bump, applies everything that passes your checks as one batch, and asks you only about updates that need a code change. New features worth adopting become issues in your tracker. Commits through `sdd-commit`. |
 
-Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in Claude Code. In Claude Code they only run when you call them, which keeps their descriptions out of every session's context. The exception is `resolve-conflict`, which Claude can also start by itself when it hits a merge conflict. Antigravity doesn't support that setting, so there the skills can also start on their own from a request like "pick up ENG-123".
+Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in Claude Code. In Claude Code they only run when you call them, which keeps their descriptions out of every session's context. The exception is `resolve-conflict`, which Claude can also start by itself when it hits a merge conflict. Antigravity doesn't support that setting, so there the skills can also start on their own from a request like "pick up ENG-123" or "pick up issue #123".
 
 ## codekit-board (for PMs)
 
@@ -118,9 +122,8 @@ To update a zip-installed skill, run `make pm-zip` again and upload the new zip 
 ## Daily flow
 
 ```text
-/sdd-plan ENG-123          # or a Linear URL, or "next" to pick from your queue
+/sdd-plan ENG-123          # or #123 on GitLab, an issue URL, or "next" to pick from your queue
   → answer clarification questions, review the plan
-  → optionally publish the spec + plan to the issue (linear-docs)
 /sdd-implement
   → test it yourself
 /sdd-commit
@@ -136,12 +139,15 @@ codekit keeps its settings in git config, so they can be shared through a commit
 
 | Key | Used by | Default |
 |-----|---------|---------|
-| `codekit.basebranch` | all | GitHub default branch |
-| `codekit.linear` | all | asked by `init`. `false` turns off every Linear step: specs stay committed in the repo, and the project docs live in `docs/project/` |
-| `codekit.linear-team` | `sdd-plan next` | any team |
-| `codekit.linear-project` | `sdd-plan next`, `update-deps`, `project-docs` | any project |
+| `codekit.basebranch` | all | the remote's default branch |
+| `codekit.tracker` | all | asked by `init`: `linear`, `gitlab`, or `none`. `none` turns off every tracker step: specs stay committed in the repo, and the project docs live in `docs/project/` |
+| `codekit.team` | Linear: `sdd-plan next`, `update-deps` | any team |
+| `codekit.project` | Linear: `sdd-plan next`, `update-deps`, `project-docs` | any project |
 | `codekit.reviewers` | `sdd-push` | none (CODEOWNERS) |
 
-Issue states aren't configured: codekit reads them from your Linear team. `/sdd-plan` moves an issue to the team's first *In Progress*-type state, and `/sdd-push` to its review state, if the team has one.
+Nothing else is configured, because codekit reads it each time:
+- **Code host:** from the `origin` remote. `github.com` is GitHub and `gitlab.com` is GitLab. For any other host, a domain or an IP address, it's whichever of `glab` and `gh` is logged in to it.
+- **Issue states:** from your Linear team (`/sdd-plan` moves an issue to the team's first *In Progress*-type state, and `/sdd-push` to its review state, if the team has one), or from your GitLab board's label columns (the column whose label says "In progress" or "Doing", and the one that says "Review").
+- **GitLab project:** from the remote. An issue in another project works by its full reference (`group/app#123`) or its URL.
 
-**Recommended:** install Linear's [GitHub integration](https://linear.app/docs/github). With it, Linear links branches and PRs by identifier and moves issues automatically on PR open and merge. codekit's own Linear updates are idempotent, so they're safe alongside it.
+**Recommended with Linear:** install Linear's [GitHub](https://linear.app/docs/github) or [GitLab](https://linear.app/docs/gitlab) integration. With it, Linear links branches and PRs by identifier and moves issues automatically on PR open and merge. codekit's own Linear updates are idempotent, so they're safe alongside it.

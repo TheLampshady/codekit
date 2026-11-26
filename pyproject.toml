@@ -1,7 +1,7 @@
 [project]
 name = "codekit"
-version = "0.4.0"
-description = "Spec-driven development skills: Linear issue to GitHub pull request"
+version = "0.5.0"
+description = "Spec-driven development skills: Linear or GitLab issue to GitHub pull request or GitLab merge request"
 readme = "README.md"
 requires-python = ">=3.11"
 

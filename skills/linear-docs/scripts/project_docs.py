@@ -11,7 +11,7 @@ the glossary) move between disk and Linear without passing through the model.
 - push uploads each FILE as one document, titled with the file's first
   "# " heading (else the file name), creating it or overwriting the one with
   that title. A document whose words haven't changed is left alone.
-- The project is --project, else `git config codekit.linear-project`, else
+- The project is --project, else `git config codekit.project`, else
   that key in the committed .config/.gitconfig.
 - The key is LINEAR_API_KEY from the environment. The key is never printed.
 
@@ -118,10 +118,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = project_root()
-    project_id = args.project or codekit_config(root, "linear-project")
+    project_id = args.project or codekit_config(root, "project")
     if not project_id:
         print(
-            "No project: pass --project or set `git config codekit.linear-project`.",
+            "No project: pass --project or set `git config codekit.project`.",
             file=sys.stderr,
         )
         return 1

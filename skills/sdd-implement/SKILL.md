@@ -17,10 +17,10 @@ Runs the framework's implementation of the plan `sdd-plan` produced, then the pr
 | OpenSpec | `openspec/` | `/opsx:apply <change-id>` |
 | None | neither | the plan in `specs/<ticket>/plan.md` |
 
-- **SpecKit feature:** the folder under `specs/` matching the branch's ticket ID or slug; `tasks.md` means the one in it. `.specify/feature.json` names the last feature specified, which is another ticket's after a branch switch. If it names a different folder, point it back first by writing `{"feature_directory": "specs/<folder>"}` to it, as `/speckit.specify` does. If no folder matches, use `feature.json` as is.
+- **SpecKit feature:** the folder under `specs/` whose name starts with the branch's ticket and a `-` (`eng-123-` in `jdoe/eng-123-add-login`, `123-` in `123-add-login`); `tasks.md` means the one in it. `.specify/feature.json` names the last feature specified, which is another ticket's after a branch switch. If it names a different folder, point it back first by writing `{"feature_directory": "specs/<folder>"}` to it, as `/speckit.specify` does. If no folder matches, use `feature.json` as is.
 - **SpecKit converge:** if converge appended a `Convergence` phase to `tasks.md`, run implement and converge again, at most two rounds. Anything still open is a gap. An older SpecKit without converge skips it.
-- **OpenSpec change:** the one in `openspec/changes/` whose id contains the branch's ticket ID, or the only active one in `openspec list`. Ask if it's ambiguous. `sdd-push` archives it.
-- **None:** `<ticket>` is the folder under `specs/` matching the branch's ticket ID or slug. Implement in small steps, following the project's documented conventions (`docs/FOUNDATIONS.md`, `CONTRIBUTING.md`, `AGENTS.md`) and the code around each change.
+- **OpenSpec change:** the one in `openspec/changes/` whose id starts with the branch's ticket and a `-`, or the only active one in `openspec list`. Ask if it's ambiguous. `sdd-push` archives it.
+- **None:** `<ticket>` is the folder under `specs/` whose name starts with the branch's ticket and a `-`. Implement in small steps, following the project's documented conventions (`docs/FOUNDATIONS.md`, `CONTRIBUTING.md`, `AGENTS.md`) and the code around each change.
 - **A framework command is missing:** stop and suggest `/codekit update`. Don't do the framework's work by hand.
 
 ## 2. Validate

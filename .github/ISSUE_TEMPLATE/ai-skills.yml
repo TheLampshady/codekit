@@ -24,6 +24,8 @@ body:
         - "Skill: code-review-local"
         - "Skill: resolve-conflict"
         - "Skill: linear-docs"
+        - "Skill: wiki-docs"
+        - "Skill: update-deps"
         - Other / General
     validations:
       required: true

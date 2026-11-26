@@ -1,6 +1,6 @@
 ---
 name: project-docs
-description: 'Update the Product Map, Decision Log, and Glossary from what changed since the last sync, in the Linear project or docs/project/. Started by sdd-push, codekit init, and the codekit-docs Action. Run it only when another codekit skill calls for it or the user names project-docs.'
+description: 'Update the Product Map, Decision Log, and Glossary from what changed since the last sync, in the Linear project, the GitLab wiki, or docs/project/. Started by sdd-push, codekit init, and the codekit-docs CI job. Run it only when another codekit skill calls for it or the user names project-docs.'
 user-invocable: true
 disable-model-invocation: false
 argument-hint: "[--full] [--ci] [--git-dir <path>]"
@@ -18,28 +18,35 @@ Each has a template in [resources/](resources/), relative to this `SKILL.md`. Th
 
 ## Where they live
 
-`git config codekit.linear` picks the mode:
+`git config codekit.tracker` picks the mode: the docs live where the team's tickets do.
 
-| | **Linear** (anything but `false`) | **Repo** (`false`) |
-|--|--|--|
-| Where | Documents in the app's Linear project, where PMs read them, ask Linear Agent about them, and file tickets | `docs/project/product-map.md`, `decision-log.md`, and `glossary.md` |
-| Updated by | The `codekit-docs` Action after every merge, with `--ci` | `sdd-push`, inside each PR. A pre-push hook warns when commits pushed another way leave them behind. |
-| Decisions from | The spec documents on each ticket's Linear issue | The spec folders committed with the code |
-| Publish | Through the Linear API, after showing the changes and asking (unless `--ci`) | Write the files. The diff is the review, and they're committed with the code. |
+| | **Linear** (`linear`) | **Wiki** (`gitlab`) | **Repo** (`none`, or unset) |
+|--|--|--|--|
+| Where | Documents in the app's Linear project, where PMs read them, ask Linear Agent about them, and file tickets | Pages at the root of the GitLab project's wiki, next to the issues | `docs/project/product-map.md`, `decision-log.md`, and `glossary.md` |
+| Updated by | The `codekit-docs` CI job after every merge, with `--ci` | The same | `sdd-push`, inside each PR. A pre-push hook warns when commits pushed another way leave them behind. |
+| Decisions from | The spec documents on each ticket's Linear issue | The spec pages under `specs/` in the wiki | The spec folders committed with the code |
+| Publish | Through the Linear API, after showing the changes and asking (unless `--ci`) | Through git, the same way | Write the files. The diff is the review, and they're committed with the code. |
 
 Run it by hand for the first build (`/codekit init` offers it), or to check a change before it merges.
+
+**Scripts.** Linear and wiki mode move documents between the tracker and disk with a script, called by absolute path from the project root, so they never pass through the model. Never read or write project docs with an MCP: they're long, and every byte would go through the model.
+
+| | Linear | Wiki |
+|--|--|--|
+| Project docs (`<script>`) | `<plugin>/skills/linear-docs/scripts/project_docs.py` | `<plugin>/skills/wiki-docs/scripts/wiki_docs.py` |
+| A ticket's spec (`<spec-script>`) | `<plugin>/skills/linear-docs/scripts/linear_docs.py` | the same `wiki_docs.py` |
 
 ## Flags
 
 | Flag | Effect |
 |------|--------|
-| `--ci` | Non-interactive. Never ask; take the default at every decision, and put anything a person should look at in the summary. The Action passes this. |
-| `--git-dir <path>` | Read the git input that [scripts/collect_git.sh](scripts/collect_git.sh) collected into `<path>` (`<tmp>/git`) and run no git command. The Action passes it, because its allowlist has no `git`. See [Git input](#git-input). |
+| `--ci` | Non-interactive. Never ask; take the default at every decision, and put anything a person should look at in the summary. The CI job passes this. |
+| `--git-dir <path>` | Read the git input that [scripts/collect_git.sh](scripts/collect_git.sh) collected into `<path>` (`<tmp>/git`) and run no git command. The CI job passes it, because its allowlist has no `git`. See [Git input](#git-input). |
 | `--full` | Rebuild the map from the whole codebase instead of updating it from the commits since the last sync. |
 
 ## Working folder
 
-Run every command from the repo root and never `cd` or use `git -C`: in the Action, the allowlist matches commands as written, and a moved shell stops every later command. Reach `<tmp>` (Step 2) by absolute path.
+Run every command from the repo root and never `cd` or use `git -C`: in the CI job, the allowlist matches commands as written, and a moved shell stops every later command. Reach `<tmp>` (Step 2) by absolute path.
 
 ## Git input
 
@@ -47,8 +54,8 @@ With `--git-dir <path>`, a script has already run git for you: `<plugin>/skills/
 
 | File | Replaces |
 |------|----------|
-| `repo.txt` | `git rev-parse --show-toplevel`, the base branch (`base=`), `HEAD` (`head=`), and `git config codekit.linear-project` (`linear-project=`) |
-| `mode.txt` | `git config codekit.linear` (`mode=`), Step 3's full or incremental choice (`run=`, with `since=`), and `<sync>` |
+| `repo.txt` | `git rev-parse --show-toplevel`, the base branch (`base=`), `HEAD` (`head=`), and `git config codekit.project` (`project=`) |
+| `mode.txt` | the mode from `git config codekit.tracker` (`mode=`: `linear`, `wiki`, or `repo`), Step 3's full or incremental choice (`run=`, with `since=`), and `<sync>` |
 | `log.txt`, `messages.txt` | `git log` over the commits to cover, as a list and in full (ticket IDs come from `messages.txt`) |
 | `diffstat.txt`, `diff.patch` | `git diff` and `git show` over those commits |
 | `specs.txt` | the spec folders those commits added or changed (repo mode) |
@@ -63,12 +70,14 @@ The script reads settings from `.config/.gitconfig` when git config lacks them, 
 
 With `--git-dir`, both come from `repo.txt`.
 
+**Repo mode with `--ci`:** stop at once with `CODEKIT-RESULT: blocked no tracker`. The CI job exists only for trackers, and docs written on a runner reach no one.
+
 Linear mode also needs these. If either fails, stop and say why.
 
-- **Linear API key:** `python3 <plugin>/skills/linear-docs/scripts/linear_docs.py --check`. With `--ci`, run it as written: the job passes the key in its environment, and the Action allows only commands that start with `python3`. Locally, run it the way [linear-docs](../linear-docs/SKILL.md) runs its script, so the profile's `LINEAR_API_KEY` is found: directly when the key is in the environment, else through `"$SHELL" -lic '…' </dev/null`. Run every `python3` command below the same way.
-- **Project:** `git config codekit.linear-project` (with `--git-dir`, `linear-project=` in `repo.txt`). If it's missing, suggest `/codekit update`.
+- **Linear API key:** `python3 <plugin>/skills/linear-docs/scripts/linear_docs.py --check`. With `--ci`, run it as written: the job passes the key in its environment, and the job allows only commands that start with `python3`. Locally, run it the way [linear-docs](../linear-docs/SKILL.md) runs its script, so the profile's `LINEAR_API_KEY` is found: directly when the key is in the environment, else through `"$SHELL" -lic '…' </dev/null`. Run every `python3` command below the same way.
+- **Project:** `git config codekit.project` (with `--git-dir`, `project=` in `repo.txt`). If it's missing, suggest `/codekit update`.
 
-**Script (Linear mode):** `<plugin>/skills/linear-docs/scripts/project_docs.py` (`<script>` below), called by absolute path from the project root. It moves documents between Linear and disk without sending them through the model. Never read or write project docs with the Linear MCP: they're long, and every byte would go through the model.
+Wiki mode needs the wiki: `python3 <plugin>/skills/wiki-docs/scripts/wiki_docs.py check`, run as written. It reaches the wiki with git's own login, or with `CODEKIT_WIKI_TOKEN` in the CI job. If it fails, stop and pass on its message, which says what to check.
 
 ## 2. Get the current docs
 
@@ -80,6 +89,7 @@ With `--git-dir`, the script already did this: read the docs in `<tmp>/docs/` an
   python3 <script> pull --title "Glossary" --out <tmp>/docs/glossary.md
   python3 <script> pull --title "Decision Log" --out <tmp>/docs/decision-log.md
   ```
+- **Wiki:** the same three commands, with `pull-doc` in place of `pull`.
 - **Repo:** copy whichever of `docs/project/product-map.md`, `glossary.md`, and `decision-log.md` exist to `<tmp>/docs/`.
 
 A doc that doesn't exist yet is fine: its step starts it from the template.
@@ -123,8 +133,12 @@ Follow [resources/product-map.md](resources/product-map.md). These rules apply t
 
 Work on `<tmp>/docs/decision-log.md`. If there's none yet, start from [resources/decision-log.md](resources/decision-log.md) and [backfill](#backfill) it first.
 
-1. **Find what shipped** in the commits from Step 3 (none when the map had no sync line). Skip any ticket or folder that already has an entry (an entry heading containing its ID or folder).
-   - **Linear:** ticket identifiers in `git log --format=%B <sha>..HEAD`, from `[ENG-123]` subjects, `Linear:` lines (an ID or an issue URL), and `Fixes ENG-123`. Pull each ticket's spec documents with the issue script, [../linear-docs/scripts/linear_docs.py](../linear-docs/scripts/linear_docs.py): `python3 <linear_docs.py> --pull <tmp>/issues/<ID> --issue <ID>`. A ticket with no spec documents gets no entry. Say so in the summary.
+1. **Find what shipped** in the commits from Step 3 (none when the map had no sync line). Skip any ticket or folder that already has an entry: an entry heading whose source is that whole ID or folder, so `#12` doesn't match an entry for `#123`.
+   - **Linear and wiki:** the tickets named in `git log --format=%B <sha>..HEAD`, by `[<ID>] ::` subjects, `Ticket:` lines (an ID or an issue URL), and `Fixes <ID>` lines. Linear IDs look like `ENG-123`, GitLab's like `#123` or `group/app#123`. Pull each ticket's spec into `<tmp>/issues/<n>/`, one folder per ticket:
+     - Linear: `python3 <spec-script> --pull <tmp>/issues/<n> --issue ENG-123`
+     - Wiki: `python3 <spec-script> pull <tmp>/issues/<n> --issue "#123"`
+
+     A ticket with no spec documents gets no entry. Say so in the summary.
    - **Repo:** the spec folders those commits added or changed under `specs/` and `openspec/changes/archive/` (`git show --name-only --format= <commit>`), read from the working tree.
 2. **Write one entry per ticket or folder,** newest first, in the template's shape. Extract only real decisions, the ones someone changing this area later would need:
    - **Decided / Why / Rejected:** from `research.md`'s Decision / Rationale / Alternatives considered (SpecKit), `design.md` and `proposal.md` (OpenSpec), or the decisions in `plan.md` (no framework)
@@ -152,23 +166,24 @@ Work on `<tmp>/docs/glossary.md`. If there's none yet, start from [resources/glo
 
 ## 7. Publish
 
-Compare `product-map.new.md` with the current map and count the capabilities added, changed, and removed, by activity. Every file keeps its template's `# ` title as its first heading (`# Product Map`, `# Glossary`, `# Decision Log`), because Linear matches documents by title.
+Compare `product-map.new.md` with the current map and count the capabilities added, changed, and removed, by activity. Every file keeps its template's `# ` title as its first heading (`# Product Map`, `# Glossary`, `# Decision Log`), because Linear and the wiki both name the document by it.
 
-- **Linear:** locally, show those counts and the changed entries, and ask before publishing. With `--ci`, publish without asking.
+- **Linear and wiki:** locally, show those counts and the changed entries, and ask before publishing. With `--ci`, publish without asking. Linear:
   ```bash
   python3 <script> push <tmp>/docs/product-map.new.md <tmp>/docs/glossary.md <tmp>/docs/decision-log.md
   ```
-  If Linear fails, report the error and stop. Don't retry by pasting the documents through the MCP.
+  Wiki: the same, with `push-docs` in place of `push`.
+  If the publish fails, report the error and stop. Don't retry by pasting the documents through an MCP.
 - **Repo:** `mkdir -p docs/project`, then copy `product-map.new.md` to `docs/project/product-map.md`, and `glossary.md` and `decision-log.md` into the same folder. Don't ask, because the diff shows every change, and don't commit. `sdd-push` amends them into its commit. Run by hand, tell the user to commit `docs/project/`.
 
 ## 8. Summary
 
-- **Mode:** Linear or repo, full or incremental, and the commit range covered.
+- **Mode:** Linear, wiki, or repo, full or incremental, and the commit range covered.
 - **Product Map:** capabilities added, changed, and removed per activity, or "no user-facing changes" when only the sync line moved. These counts show how much the map drifted.
 - **Decision Log:** entries added per ticket or folder, backfilled entries, and tickets skipped because their issue had no spec documents.
 - **Glossary:** terms appended, plus the stale **Code** names from Step 6.
-- **Where:** the project URL that `push` printed, or the files written.
+- **Where:** the project or wiki URL that the publish printed, or the files written.
 
-In the Action, this summary goes to the job log.
+In the CI job, this summary goes to the job log.
 
-With `--ci`, end the output with one fixed line, so the job log shows the outcome at a glance: `CODEKIT-RESULT: published <sync>` once `push` succeeded, else `CODEKIT-RESULT: blocked <reason>` with a one-line reason (a failed key check, a missing project, a failed push, missing git input). Never print `published` for a run that didn't publish.
+With `--ci`, end the output with one fixed line, so the job log shows the outcome at a glance: `CODEKIT-RESULT: published <sync>` once the publish succeeded, else `CODEKIT-RESULT: blocked <reason>` with a one-line reason (a failed key or wiki check, a missing project, a failed publish, missing git input). Never print `published` for a run that didn't publish.

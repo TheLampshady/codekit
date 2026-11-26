@@ -1,0 +1,95 @@
+# Installed by `/codekit init` as .gitlab/ci/codekit-docs.yml and included from
+# .gitlab-ci.yml. Keeps this app's project docs (Product Map, Decision Log, and
+# Glossary) current where its tickets live, for PMs who don't read the code: in
+# the project wiki with GitLab issues, or in the Linear project with Linear.
+# The Decision Log is built from each merged ticket's spec.
+#
+# Runs after each push to BASE_BRANCH (a merged merge request is one) and
+# updates only what the new commits changed. A push that only touches docs,
+# tests, CI config, or lockfiles stops before Claude starts. Nothing is lost:
+# the next run diffs from the commit the map was last synced to. To rebuild
+# from scratch, run a pipeline for BASE_BRANCH (Build > Pipelines > Run
+# pipeline) with the variable CODEKIT_FULL set to true.
+#
+# Needs these CI/CD variables (Settings > CI/CD > Variables), masked and
+# protected, so only protected branches such as BASE_BRANCH can read them:
+#   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Claude Pro or Max),
+#                            or ANTHROPIC_API_KEY for an Anthropic API key
+#   CODEKIT_WIKI_TOKEN       GitLab issues: an access token with write_repository
+#   LINEAR_API_KEY           Linear: Settings > Security & access > Personal API keys
+#
+# The job installs Claude Code from npm and this plugin from GitHub. If the
+# runner can't reach github.com, set CODEKIT_PLUGIN_REPO to a mirror's URL.
+
+codekit-docs:
+  # .gitlab-ci.yml sets a regular stage for this job when it includes the file:
+  # after a merge this is often the push pipeline's only job, and GitLab
+  # creates no pipeline whose only jobs are in .pre or .post.
+  stage: .post
+  image: node:lts-slim
+  # One run at a time, so two merges never write the same document at once.
+  resource_group: codekit-docs
+  timeout: 30m
+  rules:
+    - if: $CI_COMMIT_BRANCH == "BASE_BRANCH" && ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web")
+  variables:
+    GIT_DEPTH: 0
+    CODEKIT_PLUGIN_REPO: https://github.com/TheLampshady/codekit.git
+    CODEKIT_FULL: "false"
+  script:
+    - |
+      set -eu
+      apt-get update -qq
+      apt-get install -y -qq --no-install-recommends git python3 jq ca-certificates >/dev/null
+      npm install -g --silent @anthropic-ai/claude-code
+      # A self-signed instance: trust the same CA the runner's own checkout does.
+      if [ -n "${CI_SERVER_TLS_CA_FILE:-}" ]; then export GIT_SSL_CAINFO="$CI_SERVER_TLS_CA_FILE"; fi
+      export TMPDIR="$(mktemp -d)"
+      full=""
+      if [ "$CODEKIT_FULL" = "true" ]; then full="--full"; fi
+
+      # Check out the branch itself, not a detached commit: the map records
+      # the commit it synced to, and that commit must be on the branch.
+      git checkout -q -B "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA"
+
+      # Runs git for the skill, so its allowlist needs no `git`. Writes to
+      # $TMPDIR/codekit/<repo>.
+      git clone -q --depth 1 "$CODEKIT_PLUGIN_REPO" "$TMPDIR/codekit-plugin"
+      "$TMPDIR/codekit-plugin/skills/project-docs/scripts/collect_git.sh" $full
+      git_dir="$TMPDIR/codekit/$(basename "$CI_PROJECT_DIR")/git"
+
+      # Nothing a user could notice changed since the last sync: stop here.
+      run=$(sed -n 's/^run=//p' "$git_dir/mode.txt")
+      since=$(sed -n 's/^since=//p' "$git_dir/mode.txt")
+      if [ "$run" = incremental ] && git diff --quiet "$since" HEAD -- . \
+          ':(exclude,glob)**/*.md' ':(exclude)docs' ':(exclude).gitlab' ':(exclude).gitlab-ci.yml' \
+          ':(exclude).github' ':(exclude).config' ':(exclude,glob)**/test/**' ':(exclude,glob)**/tests/**' \
+          ':(exclude,glob)**/__tests__/**' ':(exclude,glob)**/*.test.*' ':(exclude,glob)**/*.spec.*' \
+          ':(exclude,glob)**/*_test.*' ':(exclude,glob)**/package-lock.json' ':(exclude,glob)**/yarn.lock' \
+          ':(exclude,glob)**/pnpm-lock.yaml' ':(exclude,glob)**/uv.lock' ':(exclude,glob)**/poetry.lock' \
+          ':(exclude,glob)**/Cargo.lock' ':(exclude,glob)**/go.sum'; then
+        echo "CODEKIT-RESULT: skipped, nothing user-facing changed since ${since}"
+        exit 0
+      fi
+
+      claude -p "/codekit:project-docs --ci --git-dir $git_dir $full" \
+        --plugin-dir "$TMPDIR/codekit-plugin" \
+        --add-dir "$TMPDIR" \
+        --allowedTools "Read,Glob,Grep,Write,Edit,Bash(cp *),Bash(mkdir *),Bash(python3 *)" \
+        --output-format json > "$TMPDIR/claude.json" || true
+
+      # A denied tool doesn't fail Claude, so the docs could silently go
+      # unpublished. Fail the job and name the tools to add to --allowedTools,
+      # or the reason the skill gave when it stopped.
+      jq -r '.result // empty' "$TMPDIR/claude.json" || true
+      result=$(jq -r '.result // empty' "$TMPDIR/claude.json" 2>/dev/null | grep -o 'CODEKIT-RESULT: .*' | tail -1 || true)
+      echo "${result:-CODEKIT-RESULT: none}"
+      denied=$(jq -r '[.permission_denials[]?.tool_name] | unique | join(", ")' "$TMPDIR/claude.json" 2>/dev/null || true)
+      if [ -n "$denied" ]; then
+        echo "Claude was denied: $denied. The docs may not have been published. Add them to --allowedTools in this job."
+        exit 1
+      fi
+      case "$result" in
+        "CODEKIT-RESULT: published"*) ;;
+        *) echo "The docs were not published. ${result:-The skill printed no CODEKIT-RESULT line.}"; exit 1 ;;
+      esac

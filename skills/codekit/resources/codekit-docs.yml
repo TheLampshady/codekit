@@ -11,7 +11,8 @@
 # Needs two repository secrets (Settings > Secrets and variables > Actions):
 #   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Claude Pro or Max)
 #   LINEAR_API_KEY           Linear: Settings > Security & access > Personal API keys
-# and `codekit.linear-project` in .config/.gitconfig.
+# and `codekit.project` in .config/.gitconfig. This is the GitHub version, for
+# Linear; GitLab gets codekit-docs.gitlab-ci.yml.
 
 name: codekit project docs
 

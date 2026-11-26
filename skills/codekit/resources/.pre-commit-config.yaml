@@ -15,8 +15,8 @@ repos:
       - id: detect-private-key
 
   # ----------------------------
-  # codekit project docs (repos without Linear only; init drops this block
-  # otherwise). On push, warns when commits changed code since the sync line
+  # codekit project docs (repos without a tracker only; init drops this
+  # block otherwise). On push, warns when commits changed code since the sync line
   # in docs/project/product-map.md without updating docs/project/. Never blocks.
   # ----------------------------
   - repo: local

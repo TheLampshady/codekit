@@ -18,7 +18,7 @@ Record each tool's version **before** anything runs (`<tool> --version`). Skip a
 | specify | `specify self upgrade` | It upgrades only `uv tool` and `pipx` installs. For any other install it prints guidance; relay that to the user. To preview first: `specify self check`. |
 | openspec | `npm install -g @fission-ai/openspec@latest` | With Homebrew: `brew upgrade openspec`. With pnpm, yarn, bun or volta, use that manager's global add. |
 | pre-commit | `uv tool upgrade pre-commit` | If uv didn't install it, use whatever did (`pipx upgrade pre-commit`, `brew upgrade pre-commit`). |
-| gh | `brew upgrade gh` when Homebrew owns it (`brew list gh`) | Otherwise give the command for the user's package manager (`sudo apt install --only-upgrade gh`, `winget upgrade GitHub.cli`, …) and let them run it with `! …`. Never run `sudo` yourself. |
+| gh or glab | The code host's CLI: `brew upgrade gh` or `brew upgrade glab` when Homebrew owns it (`brew list <tool>`) | Otherwise give the command for the user's package manager (`sudo apt install --only-upgrade gh`, `winget upgrade GitHub.cli`, `winget upgrade GLab.GLab`, …) and let them run it with `! …`. Never run `sudo` yourself. |
 
 If one upgrade fails, report the error verbatim and continue with the rest.
 
@@ -42,13 +42,13 @@ Skip this step if the repo uses another hook manager (init Step 5). Otherwise of
 
 Each item fills in only what's missing; it never rewrites:
 
-1. **Git wiring:** `include.path` still lists `../.config/.gitconfig`, and the pre-commit hook exists (`git rev-parse --git-path hooks/pre-commit`), plus the pre-push hook without Linear. If either is missing, repeat init Step 5 (a fresh clone, or a teammate who never ran init).
+1. **Git wiring:** `include.path` still lists `../.config/.gitconfig`, and the pre-commit hook exists (`git rev-parse --git-path hooks/pre-commit`), plus the pre-push hook without a tracker. If either is missing, repeat init Step 5 (a fresh clone, or a teammate who never ran init).
 2. **Installed files:** install any init Step 4 file that's missing, as init does: the commit template, and the pre-commit config unless the repo has its own hooks.
-3. **Config keys:** compare the `[codekit]` keys in `.config/.gitconfig` with [../resources/.gitconfig](../resources/.gitconfig). For any key the plugin knows but the file lacks entirely, ask for its value as init Step 3 does, and append it, empty if the user skips it. An empty key was skipped on purpose, so don't ask about it again. The exception is `linear-project`: while it's empty and the repo uses Linear, ask again, as init promised. If `linear` is missing, ask *"Use Linear with this repo?"* first. With `linear = false`, don't ask for the Linear keys.
-4. **`.gitignore`:** append any required line (init Step 4) that's missing. The `specs/` line applies only when the repo uses Linear.
+3. **Config keys:** compare the `[codekit]` keys in `.config/.gitconfig` with [../resources/.gitconfig](../resources/.gitconfig), leaving out the keys the tracker doesn't use: `team` and `project` are Linear's, so they apply only with `tracker = linear`. For any key that applies but the file lacks entirely, ask for its value as init Step 3 does, and append it, empty if the user skips it. An empty key was skipped on purpose, so don't ask about it again. The exception is Linear's `project`: while it's empty, ask again, as init promised.
+4. **`.gitignore`:** append any required line (init Step 4) that's missing. The `specs/` line applies only when there's a tracker.
 5. **Project docs:**
-   - **Linear:** if `.github/workflows/codekit-docs.yml` exists, compare it with [../resources/codekit-docs.yml](../resources/codekit-docs.yml), filled in as init Step 7 does. If they differ, show the diff and offer to replace the file. It's codekit's template, but the team may have edited it, so never replace it without a yes. If it's missing and `codekit.linear-project` is set, offer init Step 7. Either way, re-run the `gh secret list` check from init Step 7.
-   - **Without Linear:** if codekit's `.config/.pre-commit-config.yaml` lacks the `project-docs-behind` hook, show that block from [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml) and offer to append it. If `docs/project/` doesn't exist, offer init Step 7's first build.
+   - **With a tracker:** if the code host's installed CI file from init Step 7 exists, compare it with its template, filled in as init Step 7 does. If they differ, show the diff and offer to replace the file. It's codekit's template, but the team may have edited it, so never replace it without a yes. If it's missing and the tracker file's **Project docs** doesn't say to skip, offer init Step 7. Either way, re-run init Step 7's secrets check.
+   - **Without a tracker:** if codekit's `.config/.pre-commit-config.yaml` lacks the `project-docs-behind` hook, show that block from [../resources/.pre-commit-config.yaml](../resources/.pre-commit-config.yaml) and offer to append it. If `docs/project/` doesn't exist, offer init Step 7's first build.
 6. **Constitution / OpenSpec config:** compare the project's constitution, or the `context` and `rules` in `openspec/config.yaml`, with the current [../resources/principles.md](../resources/principles.md) and [../resources/openspec-config.yaml](../resources/openspec-config.yaml), matching principles by heading or meaning. Follow the "filled in" row of [sdd-context.md §2](sdd-context.md#2-check-what-exists-never-overwrite): offer to **append** only the principles or rules the project lacks, show the exact text, and bump the constitution's MINOR version. If the constitution is over 300 lines, or appending would push it over, don't append: offer to move its examples to `docs/PRINCIPLES-EXAMPLES.md` (from [../resources/principles-examples.md](../resources/principles-examples.md)) and trim it first. Install that file if it's missing. Don't change or remove principles the project already has, even if the baseline worded them differently.
 7. **Project Patterns:** check that each documented pattern still matches the code, i.e. the file paths and imports it cites still exist. Report patterns that point at code that's gone, and patterns the code now has but the doc doesn't. Offer the fixes, and never apply them silently.
 
@@ -60,7 +60,7 @@ uv          0.x.y  →  0.x.z
 specify     …      →  …
 openspec    …      →  …        (or: not used)
 pre-commit  …      →  …
-gh          …      →  …        (or: manual: <command>)
+gh / glab   …      →  …        (or: manual: <command>)
 ```
 
 Then:

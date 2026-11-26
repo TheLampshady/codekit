@@ -41,17 +41,17 @@ Amending rewrites the branch's last commit, so check two things first:
 2. `.config/.commit-message-template` or `.gitmessage` in the repo
 3. [resources/.commit-message-template](resources/.commit-message-template)
 
-**Ticket ID** (`<ticket-id>`). If `git config codekit.linear` is `false`, there's none. Otherwise, first match wins:
-1. A ticket identifier (`[A-Za-z][A-Za-z0-9]+-\d+`) in the branch name, uppercased, e.g. `user/eng-123-title` → `ENG-123`. Version numbers and dates match the same pattern (`feature/upgrade-node-20` → `NODE-20`), so keep it only if the part before the `-` is the `git config codekit.linear-team` key or, with no team key set, if `get_issue` finds it. If Linear can't be reached, keep it and say it's unchecked.
-2. When amending, the ID in the previous message.
+**Ticket ID** (`<ticket-id>`). `git config codekit.tracker` names the tracker. With `none`, or unset, there's no ticket. Otherwise read its file, [references/linear.md](references/linear.md) or [references/gitlab.md](references/gitlab.md), and take the first match:
+1. The branch name, read as the tracker file's **Branch** says.
+2. When amending, the ID in the previous message: its `[<ID>] ::` subject tag, or its `Ticket:` line.
 3. The conversation.
 4. None. Don't invent an ID.
 
-**Ticket link** (`<ticket-url>`): the issue's `url` from `get_issue` (`fields: ["url"]`, or reuse the call that checked the ID), without the title slug after the ID: `https://linear.app/<workspace>/issue/ENG-123`. If Linear can't be reached, use the ID.
+**Ticket link** (`<ticket-url>`): the issue's URL, as the tracker file's **Link** says. If the tracker can't be reached, use the ID.
 
 **Ticket slots.** Every commit names its ticket, whatever the template's placeholders say, so it can be traced back:
 - **Subject tag:** the subject's leading `[...]` is the ticket slot, whatever the template writes there (`[TICKET_ID]`, `[TASK]`, `[ABC-000]`). Fill it with `[<ticket-id>]`, or `[TASK]` when there's no ticket.
-- **Link line:** with a ticket, fill the template's `Linear:` line with `<ticket-url>`. If the template has none, add `Linear: <ticket-url>` as the message's last line. With no ticket, drop the line.
+- **Link line:** with a ticket, fill the template's `Ticket:` line with `<ticket-url>`. If the template has none, add `Ticket: <ticket-url>` as the message's last line. With no ticket, drop the line. Later skills read the ticket back from this line, and for an issue in another project the URL is what names that project.
 
 For the summary, use the ticket title from the conversation or the spec as raw material. Describe the change, not the ticket.
 

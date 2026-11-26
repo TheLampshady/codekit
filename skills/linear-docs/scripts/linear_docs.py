@@ -12,10 +12,10 @@ The issue is the spec's copy of record; the folder itself isn't committed.
 - Run from inside the project; its root is the enclosing git repo.
 - FOLDER defaults to the OpenSpec change or specs/ folder named after the
   branch's Linear issue, else the SpecKit feature in .specify/feature.json.
-- The issue defaults to a "**Linear:** ENG-123" line in spec.md, ticket.md, or
+- The issue defaults to a "**Ticket:** ENG-123" line in spec.md, ticket.md, or
   proposal.md, else the identifier in the folder name, else in the branch.
 - The key is LINEAR_API_KEY from the environment. The key is never printed.
-- With --team, or `git config codekit.linear-team` (else that key in the
+- With --team, or `git config codekit.team` (else that key in the
   committed .config/.gitconfig), issues on other teams are refused.
 - Only spec.md, plan.md, research.md (SpecKit, manual) and proposal.md,
   design.md (OpenSpec) are uploaded: the files that carry what was decided and
@@ -56,8 +56,8 @@ DOC_ORDER = (
 SPEC_FILES = ("spec.md", "ticket.md", "proposal.md")
 
 ISSUE_ID = r"[A-Za-z][A-Za-z0-9]+-\d+"
-LINEAR_LINE = re.compile(
-    r"\*\*Linear:?\*\*:?\s*\[?(" + ISSUE_ID + r")", re.IGNORECASE
+TICKET_LINE = re.compile(
+    r"\*\*Ticket:?\*\*:?\s*\[?(" + ISSUE_ID + r")", re.IGNORECASE
 )
 ID_IN_NAME = re.compile(r"(?<![A-Za-z0-9])(" + ISSUE_ID + r")")
 URL = re.compile(r"https?://[^\s)>\]]+")
@@ -144,7 +144,7 @@ def issue_from_folder(folder: Path) -> str | None:
     for name in SPEC_FILES:
         path = folder / name
         if path.exists():
-            match = LINEAR_LINE.search(path.read_text(encoding="utf-8"))
+            match = TICKET_LINE.search(path.read_text(encoding="utf-8"))
             if match:
                 return match.group(1).upper()
     return issue_in(folder.name)
@@ -336,7 +336,7 @@ def main(argv: list[str] | None = None) -> int:
     identifier = (args.issue or issue_from_folder(folder) or branch_issue or "").upper()
     if not identifier:
         print(
-            "No issue: pass --issue ENG-123 or add '**Linear:** ENG-123' to spec.md.",
+            "No issue: pass --issue ENG-123 or add '**Ticket:** ENG-123' to spec.md.",
             file=sys.stderr,
         )
         return 1
@@ -346,7 +346,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     issue = graphql(key, ISSUE_QUERY, {"id": identifier})["issue"]
-    team = (args.team or codekit_config(root, "linear-team")).upper()
+    team = (args.team or codekit_config(root, "team")).upper()
     issue_team = ((issue.get("team") or {}).get("key") or "").upper()
     if team and issue_team != team:
         print(f"{identifier} is on team {issue_team}, not {team}; nothing changed.")

@@ -66,7 +66,7 @@ un-antigravity: ## Remove the Antigravity IDE symlink and uninstall from the CLI
 claude: ## Install this repo as a Claude plugin (local scope, this machine only)
 	claude plugin marketplace add $(PWD)
 	claude plugin install codekit@codekit-marketplace
-	@echo "✓ Claude plugin installed — run /mcp and authenticate 'linear'"
+	@echo "✓ Claude plugin installed — with Linear, run /mcp and authenticate 'linear'"
 
 .PHONY: un-claude
 un-claude: ## Uninstall the local Claude plugin
@@ -123,6 +123,7 @@ status: ## Show per-platform install status and tool availability
 	@echo ""
 	@echo "── Tools ────────────────────────────────────────────────"
 	@command -v gh >/dev/null 2>&1 && { gh auth status >/dev/null 2>&1 && echo "  gh: authenticated" || echo "  gh: installed, not authenticated (gh auth login)"; } || echo "  gh: not installed"
+	@command -v glab >/dev/null 2>&1 && { glab auth status >/dev/null 2>&1 && echo "  glab: authenticated" || echo "  glab: installed, not authenticated (glab auth login --hostname <host>)"; } || echo "  glab: not installed (optional, for GitLab)"
 	@command -v uv >/dev/null 2>&1 && echo "  uv: installed" || echo "  uv: not installed (curl -LsSf https://astral.sh/uv/install.sh | sh)"
 	@out=$$(python3 skills/linear-docs/scripts/linear_docs.py --check 2>/dev/null) \
 		&& echo "  $$out" \

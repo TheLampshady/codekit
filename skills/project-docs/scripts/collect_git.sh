@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Collects everything project-docs needs from git, so a run with no shell
-# access (the codekit-docs Action) never has to call git itself.
+# access (the codekit-docs CI job) never has to call git itself.
 #
 #   collect_git.sh [--full] [<tmp>]
 #
 # Run it from the repo root. <tmp> defaults to ${TMPDIR:-/tmp}/codekit/<repo>.
-# It pulls the current project docs into <tmp>/docs/ (Linear mode) or copies
-# them from docs/project/ (repo mode), and writes the git input to <tmp>/git/:
+# It pulls the current project docs into <tmp>/docs/ (from Linear or the wiki)
+# or copies them from docs/project/ (repo mode), and writes the git input to
+# <tmp>/git/:
 #
-#   repo.txt      name, root, head, base branch, base ref, Linear project
-#   mode.txt      mode (linear|repo), run (full|incremental), since, sync
+#   repo.txt      name, root, head, base branch, base ref, Linear project (project=)
+#   mode.txt      mode (linear|wiki|repo), run (full|incremental), since, sync
 #   log.txt       one line per commit to cover (empty on a full run)
 #   messages.txt  the full messages of those commits
 #   diffstat.txt  files changed by those commits
@@ -40,6 +41,7 @@ tmp=${tmp:-${TMPDIR:-/tmp}/codekit/$name}
 out=$tmp/git
 here=$(dirname "$(readlink -f "$0")")
 project_docs=$here/../../linear-docs/scripts/project_docs.py
+wiki_docs=$here/../../wiki-docs/scripts/wiki_docs.py
 
 # A setting from git config, else from the committed .config/.gitconfig, so a
 # fresh checkout (where init's include.path isn't set) keeps its settings.
@@ -51,17 +53,25 @@ base=${base:-main}
 ref=origin/$base
 git rev-parse -q --verify "$ref" >/dev/null || ref=$base
 
-mode=linear
-[ "$(cfg linear)" = "false" ] && mode=repo
+# The docs live where the tickets do.
+case "$(cfg tracker)" in
+  linear) mode=linear ;;
+  gitlab) mode=wiki ;;
+  *) mode=repo ;;
+esac
 
 rm -rf "$tmp/docs" "$out"
 mkdir -p "$tmp/docs" "$out"
 
 # Current docs. A doc that doesn't exist yet is fine.
-if [ "$mode" = linear ]; then
+if [ "$mode" = linear ] || [ "$mode" = wiki ]; then
   for title in "Product Map" "Glossary" "Decision Log"; do
     file=$(echo "$title" | tr 'A-Z ' 'a-z-').md
-    python3 "$project_docs" pull --title "$title" --out "$tmp/docs/$file"
+    if [ "$mode" = linear ]; then
+      python3 "$project_docs" pull --title "$title" --out "$tmp/docs/$file"
+    else
+      python3 "$wiki_docs" pull-doc --title "$title" --out "$tmp/docs/$file"
+    fi
   done
 else
   for file in product-map.md glossary.md decision-log.md; do
@@ -88,7 +98,7 @@ fi
   echo "head=$(git rev-parse HEAD)"
   echo "base=$base"
   echo "ref=$ref"
-  echo "linear-project=$(cfg linear-project)"
+  echo "project=$(cfg project)"
 } > "$out/repo.txt"
 {
   echo "mode=$mode"
