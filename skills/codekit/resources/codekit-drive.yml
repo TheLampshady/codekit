@@ -1,0 +1,44 @@
+# Installed by `/codekit init` in a repo with no tracker, when `codekit.drive`
+# names a Google Drive folder. After each push to BASE_BRANCH that changes
+# docs/project/, it copies the project docs (Product Map, Decision Log, and
+# Glossary) into that folder as Google Docs, for people who can't open the
+# repo. It's a one-way copy: edit the docs in the repo, never in Drive. Run it
+# by hand from the Actions tab to copy them again.
+#
+# Needs three repository secrets (Settings > Secrets and variables > Actions),
+# from the OAuth client in codekit's docs/SETUP.md (Google Drive copy):
+#   CODEKIT_DRIVE_CLIENT_ID, CODEKIT_DRIVE_CLIENT_SECRET, CODEKIT_DRIVE_REFRESH_TOKEN
+# GitLab gets codekit-drive.gitlab-ci.yml.
+
+name: codekit drive copy
+
+on:
+  push:
+    branches: [BASE_BRANCH]
+    paths: ["docs/project/**"]
+  workflow_dispatch:
+
+# One run at a time, so two merges never write the same document at once.
+concurrency:
+  group: codekit-drive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy to Google Drive
+        env:
+          CODEKIT_DRIVE_CLIENT_ID: ${{ secrets.CODEKIT_DRIVE_CLIENT_ID }}
+          CODEKIT_DRIVE_CLIENT_SECRET: ${{ secrets.CODEKIT_DRIVE_CLIENT_SECRET }}
+          CODEKIT_DRIVE_REFRESH_TOKEN: ${{ secrets.CODEKIT_DRIVE_REFRESH_TOKEN }}
+        run: |
+          git clone --depth 1 https://github.com/TheLampshady/codekit.git "$RUNNER_TEMP/codekit-plugin"
+          python3 "$RUNNER_TEMP/codekit-plugin/skills/project-docs/scripts/drive_docs.py" push \
+            docs/project/product-map.md docs/project/glossary.md docs/project/decision-log.md

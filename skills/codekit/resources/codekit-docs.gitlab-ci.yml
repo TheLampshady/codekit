@@ -18,6 +18,12 @@
 #   CODEKIT_WIKI_TOKEN       GitLab issues: an access token with write_repository
 #   LINEAR_API_KEY           Linear: Settings > Security & access > Personal API keys
 #
+# With `codekit.drive` set to a Google Drive folder, the job also copies the
+# docs there as Google Docs, for people who can't open the tracker or the
+# repo. That needs three more variables, from the OAuth client in codekit's
+# docs/SETUP.md (Google Drive copy): CODEKIT_DRIVE_CLIENT_ID,
+# CODEKIT_DRIVE_CLIENT_SECRET, and CODEKIT_DRIVE_REFRESH_TOKEN.
+#
 # The job installs Claude Code from npm and this plugin from GitHub. If the
 # runner can't reach github.com, set CODEKIT_PLUGIN_REPO to a mirror's URL.
 
@@ -93,3 +99,13 @@ codekit-docs:
         "CODEKIT-RESULT: published"*) ;;
         *) echo "The docs were not published. ${result:-The skill printed no CODEKIT-RESULT line.}"; exit 1 ;;
       esac
+
+      # Reached only after a publish. Without `codekit.drive` it does nothing.
+      # Drive is a copy, so a failed copy only warns: the next run uploads the
+      # docs again in full.
+      docs="$TMPDIR/codekit/$(basename "$CI_PROJECT_DIR")/docs"
+      map="$docs/product-map.new.md"
+      [ -f "$map" ] || map="$docs/product-map.md"
+      python3 "$TMPDIR/codekit-plugin/skills/project-docs/scripts/drive_docs.py" push \
+        "$map" "$docs/glossary.md" "$docs/decision-log.md" \
+        || echo "Warning: the Google Drive copy failed (see above). The next run copies the docs again."

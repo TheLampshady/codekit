@@ -1,0 +1,41 @@
+# Installed by `/codekit init` as .gitlab/ci/codekit-drive.yml, and included
+# from .gitlab-ci.yml, in a repo with no tracker when `codekit.drive` names a
+# Google Drive folder. After each push to BASE_BRANCH that changes
+# docs/project/, it copies the project docs (Product Map, Decision Log, and
+# Glossary) into that folder as Google Docs, for people who can't open the
+# repo. It's a one-way copy: edit the docs in the repo, never in Drive. To copy
+# them again, run a pipeline for BASE_BRANCH (Build > Pipelines > Run pipeline).
+#
+# Needs three CI/CD variables (Settings > CI/CD > Variables), masked and
+# protected, from the OAuth client in codekit's docs/SETUP.md (Google Drive
+# copy): CODEKIT_DRIVE_CLIENT_ID, CODEKIT_DRIVE_CLIENT_SECRET, and
+# CODEKIT_DRIVE_REFRESH_TOKEN.
+#
+# The job fetches this plugin from GitHub. If the runner can't reach
+# github.com, set CODEKIT_PLUGIN_REPO to a mirror's URL.
+
+codekit-drive:
+  # .gitlab-ci.yml sets a regular stage for this job when it includes the file:
+  # after a merge this is often the push pipeline's only job, and GitLab
+  # creates no pipeline whose only jobs are in .pre or .post.
+  stage: .post
+  image: python:3-slim
+  # One run at a time, so two merges never write the same document at once.
+  resource_group: codekit-drive
+  timeout: 10m
+  rules:
+    # A pipeline run by hand ("web") always counts as changing the docs.
+    - if: $CI_COMMIT_BRANCH == "BASE_BRANCH" && ($CI_PIPELINE_SOURCE == "push" || $CI_PIPELINE_SOURCE == "web")
+      changes:
+        - docs/project/**/*
+  variables:
+    CODEKIT_PLUGIN_REPO: https://github.com/TheLampshady/codekit.git
+  script:
+    - |
+      set -eu
+      apt-get update -qq
+      apt-get install -y -qq --no-install-recommends git ca-certificates >/dev/null
+      plugin="$(mktemp -d)/codekit-plugin"
+      git clone -q --depth 1 "$CODEKIT_PLUGIN_REPO" "$plugin"
+      python3 "$plugin/skills/project-docs/scripts/drive_docs.py" push \
+        docs/project/product-map.md docs/project/glossary.md docs/project/decision-log.md

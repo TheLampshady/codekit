@@ -44,6 +44,7 @@ Ask in one message, with the detected defaults filled in:
 1. **Base branch:** detect it from `git symbolic-ref --short refs/remotes/origin/HEAD` (strip `origin/`), else the host's default branch (`gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, or `default_branch` in `glab repo view --output json`), else `main`.
 2. **The tracker's settings,** from the tracker file's **Settings**. Some trackers have none.
 3. **Default reviewers:** usernames on the code host, comma-separated. Optional, and CODEOWNERS covers it if the repo has one.
+4. **Google Drive folder** (`codekit.drive`), optional: *"To also copy the project docs to Google Drive as Google Docs, for people who can't open the tracker or the repo, create a folder in Drive and paste its link."* Store the folder's ID, the part of the link after `/folders/`. CI does the copying (Step 7).
 
 ## 4. Install files
 
@@ -92,7 +93,7 @@ The [project docs](../../project-docs/SKILL.md) are the Product Map, Decision Lo
 
      If the installed file already exists, don't ask: go straight to the secrets check. Otherwise ask:
 
-     > Install the `codekit-docs` CI job? After every merge it updates the app's **Product Map**, **Glossary**, and **Decision Log** (reference only) in <the tracker's docs home>, so PMs can read about and ask about the app without reading the code. It runs Claude Code in CI, so it needs a Claude Pro or Max subscription (or an Anthropic API key) even if your team uses Antigravity, plus two CI secrets.
+     > Install the `codekit-docs` CI job? After every merge it updates the app's **Product Map**, **Glossary**, and **Decision Log** (reference only) in <the tracker's docs home>, and copies them to the Google Drive folder if you gave one, so PMs can read about and ask about the app without reading the code. It runs Claude Code in CI, so it needs a Claude Pro or Max subscription (or an Anthropic API key) even if your team uses Antigravity, plus two CI secrets, and three more for the Drive copy.
 
      On a yes, write the template to the installed file, with `BASE_BRANCH` replaced by the base branch from Step 3 (`mkdir -p` its folder first). On GitLab, `.gitlab-ci.yml` also has to include it and give it a regular stage: after a merge this job is often the only one in the base branch's push pipeline, and GitLab creates no pipeline whose only jobs are in `.pre` or `.post`. Use the last stage in the file's `stages:` list, or `test` when it has none:
        ```yaml
@@ -113,9 +114,17 @@ The [project docs](../../project-docs/SKILL.md) are the Product Map, Decision Lo
      |--------|----------------------|
      | `CLAUDE_CODE_OAUTH_TOKEN` | Run `claude setup-token`. GitHub: `gh secret set CLAUDE_CODE_OAUTH_TOKEN` and paste the token when prompted. GitLab: `read -rs t && printf %s "$t" \| glab variable set CLAUDE_CODE_OAUTH_TOKEN --masked --protected; unset t`, pasting the token when the cursor waits. |
      | The tracker's secret | From the tracker file's **Project docs** |
+     | `CODEKIT_DRIVE_CLIENT_ID`, `CODEKIT_DRIVE_CLIENT_SECRET`, `CODEKIT_DRIVE_REFRESH_TOKEN` | Only when `codekit.drive` is set. Created once, with or without a tracker, as [docs/SETUP.md](../../../docs/SETUP.md#google-drive-copy) describes: an OAuth client set to **In production**, and a refresh token from a Google account with Editor on the folder. Set each one the way `CLAUDE_CODE_OAUTH_TOKEN` is set, pasting its value. |
 
      A team on the Anthropic API instead of a subscription sets `ANTHROPIC_API_KEY` in place of `CLAUDE_CODE_OAUTH_TOKEN`. On GitHub, it also replaces the workflow's `claude_code_oauth_token` line with `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}`. On GitLab, protected variables reach only protected branches, so the base branch must be protected (the default branch is, out of the box).
-   - **Without a tracker:** nothing to install. `sdd-push` updates them inside each PR, and the `project-docs-behind` pre-push hook (Steps 4 and 5) warns when commits pushed some other way leave them behind. If Step 4 skipped codekit's pre-commit config for the repo's own hooks, say the warning isn't installed.
+   - **Without a tracker:** `sdd-push` updates them inside each PR, and the `project-docs-behind` pre-push hook (Steps 4 and 5) warns when commits pushed some other way leave them behind. If Step 4 skipped codekit's pre-commit config for the repo's own hooks, say the warning isn't installed. Install nothing else unless `codekit.drive` is set. If it is, install the `codekit-drive` CI job, which copies `docs/project/` to that folder after each merge that changes it and runs no Claude:
+
+     | Host | Installed file | Template |
+     |------|----------------|----------|
+     | GitHub | `.github/workflows/codekit-drive.yml` | [../resources/codekit-drive.yml](../resources/codekit-drive.yml) |
+     | GitLab | `.gitlab/ci/codekit-drive.yml`, included from `.gitlab-ci.yml` | [../resources/codekit-drive.gitlab-ci.yml](../resources/codekit-drive.gitlab-ci.yml) |
+
+     The Drive folder from Step 3 was the yes, so don't ask again. Install it as the tracker's job above is installed: skip a file that exists, fill in `BASE_BRANCH`, and on GitLab add the same `include:` and stage lines, with `codekit-drive` in place of `codekit-docs`. Then run the secrets check for the three Drive secrets only.
 2. **First build.** Skip it if `docs/project/product-map.md` exists, or if the CI job was already installed before this run. With a tracker, it also needs the tracker's docs check from the prerequisites: if that failed, skip it and say why. Otherwise ask:
 
    > Build the project docs now? The Product Map is written from the code, and the Decision Log starts with the decisions in the specs already merged, so nothing is lost when `specs/` stops being tracked. It reads the whole codebase once, so it takes a while.

@@ -108,7 +108,7 @@ Run skills as commands: `/sdd-plan ENG-123`, or `/codekit:sdd-plan ENG-123` in C
 
 ## codekit-board (for PMs)
 
-[`codekit-board`](pm/skills/codekit-board/SKILL.md) is a second plugin in the same marketplace, for product managers who work in the Claude app and not the CLI. It answers questions about the board and the product (from the Product Map, Glossary, and Decision Log), and turns a rough request into a story-sized ticket, confirmed with a short impact, effort, and risk summary before anything is created. It's read-only except for those confirmed tickets. PMs connect their board (Linear, Jira, or GitHub) in the app themselves.
+[`codekit-board`](pm/skills/codekit-board/SKILL.md) is a second plugin in the same marketplace, for product managers who work in the Claude app and not the CLI. It answers questions about the board and the product (from the Product Map, Glossary, and Decision Log), and turns a rough request into a story-sized ticket, confirmed with a short impact, effort, and risk summary before anything is created. It's read-only except for those confirmed tickets. PMs connect their board (Linear, Jira, or GitHub) in the app themselves. For people who can't open the board or the repo, the project docs can also be copied to a Google Drive folder ([setup](docs/SETUP.md#google-drive-copy)). Put the folder's link on the board profile's `Project docs:` line, and they read it through their own Google Drive connector.
 
 Two ways to install it:
 
@@ -144,6 +144,7 @@ codekit keeps its settings in git config, so they can be shared through a commit
 | `codekit.team` | Linear: `sdd-plan next`, `update-deps` | any team |
 | `codekit.project` | Linear: `sdd-plan next`, `update-deps`, `project-docs` | any project |
 | `codekit.reviewers` | `sdd-push` | none (CODEOWNERS) |
+| `codekit.drive` | the CI jobs | none. A Google Drive folder ID, asked by `init`. CI also copies the project docs there as Google Docs, for people who can't open the tracker or the repo ([setup](docs/SETUP.md#google-drive-copy)) |
 
 Nothing else is configured, because codekit reads it each time:
 - **Code host:** from the `origin` remote. `github.com` is GitHub and `gitlab.com` is GitLab. For any other host, a domain or an IP address, it's whichever of `glab` and `gh` is logged in to it.
