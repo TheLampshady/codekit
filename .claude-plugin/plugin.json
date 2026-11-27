@@ -1,7 +1,7 @@
 {
   "name": "codekit",
   "description": "Spec-driven development from ticket to pull request. sdd-plan pulls a Linear or GitLab issue, branches, and hands it to SpecKit or OpenSpec; sdd-implement builds it; sdd-commit commits it; sdd-push opens the GitHub pull request or GitLab merge request and links it back to the issue.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "author": {
     "name": "Lampshady",
     "email": "lampshady24@gmail.com"

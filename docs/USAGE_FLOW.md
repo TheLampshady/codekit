@@ -144,6 +144,7 @@ flowchart LR
 - **Full rebuild:** GitHub: the Actions tab (**Run workflow** → **full**). GitLab: run a pipeline for the base branch with `CODEKIT_FULL=true`. Or `/project-docs --full` locally, when the map seems off.
 - **Locally:** `/project-docs` does the same update, but shows the changes and asks before publishing.
 - **Without a tracker:** the same three docs are files in `docs/project/`. `sdd-push` updates them inside each PR and amends them into its commit, so they're reviewed with the code. Commits pushed some other way are caught up by the next update, and a pre-push hook says when the docs are behind.
+- **Google Drive copy:** with `codekit.drive` set, CI also copies the three docs to that Drive folder as Google Docs, for people who can't open the tracker or the repo. With a tracker, the `codekit-docs` job does it after publishing. Without one, the `codekit-drive` job does it after a merge changes `docs/project/`. It's one-way: edit the docs where they live, never in Drive. Setup: [SETUP.md § Google Drive copy](SETUP.md#google-drive-copy).
 - **Who edits what:** the map is generated, so fix the code or the Glossary, not the map. The Decision Log is append-only and for reference: it's AI-extracted, each entry links its ticket as the source, and nothing feeds it to an agent. The Glossary belongs to the team, so the update only appends terms to it.
 - **Effort questions:** the map's Core entities (attributes, cardinality, states) and Interfaces (who consumes each) let Linear Agent place a request on an effort rung, listed at the top of the map. That's a starting point; a developer confirms it.
 
@@ -213,6 +214,7 @@ With GitLab issues, the same ticket is **#42**: the branch is `42-cancel-an-orde
 | `codekit.team` | `/codekit init`, `sdd-plan`, `update-deps` | Linear only. Scopes `sdd-plan next`; the team `update-deps` files issues in |
 | `codekit.project` | `/codekit init` | Linear only. The app's Linear project ID (you create the project). Scopes `sdd-plan next`, holds the issues `update-deps` files, and holds the Product Map and Glossary |
 | `codekit.reviewers` | `/codekit init` | Usernames on the code host, passed to `gh pr create --reviewer` or `glab mr create --reviewer` |
+| `codekit.drive` | `/codekit init` | Optional. A Google Drive folder ID. CI also copies the project docs there as Google Docs, for people who can't open the tracker or the repo |
 
 The code host, the GitLab project, and the board's columns aren't settings: codekit reads them from the `origin` remote and the board each run.
 

@@ -29,6 +29,8 @@ Each has a template in [resources/](resources/), relative to this `SKILL.md`. Th
 
 Run it by hand for the first build (`/codekit init` offers it), or to check a change before it merges.
 
+**Google Drive copy.** When `codekit.drive` names a Drive folder, CI also copies the three docs there as Google Docs, for people who can't open the tracker or the repo. The `codekit-docs` job does it right after this skill publishes. Without a tracker, the `codekit-drive` job does it after a merge changes `docs/project/`. Both run [scripts/drive_docs.py](scripts/drive_docs.py). The copy only goes one way: nothing reads it back, and this skill never touches Drive. A run by hand reaches Drive with the next CI run.
+
 **Scripts.** Linear and wiki mode move documents between the tracker and disk with a script, called by absolute path from the project root, so they never pass through the model. Never read or write project docs with an MCP: they're long, and every byte would go through the model.
 
 | | Linear | Wiki |
@@ -173,7 +175,7 @@ Compare `product-map.new.md` with the current map and count the capabilities add
   python3 <script> push <tmp>/docs/product-map.new.md <tmp>/docs/glossary.md <tmp>/docs/decision-log.md
   ```
   Wiki: the same, with `push-docs` in place of `push`.
-  If the publish fails, report the error and stop. Don't retry by pasting the documents through an MCP.
+  If the publish fails, report the error and stop. Don't retry by pasting the documents through an MCP. With `--ci`, leave the files in `<tmp>/docs/`: the job copies them to Google Drive after this run.
 - **Repo:** `mkdir -p docs/project`, then copy `product-map.new.md` to `docs/project/product-map.md`, and `glossary.md` and `decision-log.md` into the same folder. Don't ask, because the diff shows every change, and don't commit. `sdd-push` amends them into its commit. Run by hand, tell the user to commit `docs/project/`.
 
 ## 8. Summary

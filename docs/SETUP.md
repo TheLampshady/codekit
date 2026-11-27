@@ -94,17 +94,17 @@ In the project repo, run:
 It will:
 1. **Ask where the repo's tickets live** (Linear, GitLab issues, or none, unless `.config/.gitconfig` already says), then **check prerequisites.** These are required, and init stops until they're fixed: your code host's CLI (`gh` or `glab`) installed and logged in, `uv` installed, and (only if you use Linear) the Linear MCP connected. It runs every check first and reports them together. Also checked, without stopping: an `origin` remote, `LINEAR_API_KEY` with Linear (set and accepted), the wiki with GitLab issues, and `python3`.
 2. **Set up an SDD framework.** If the repo has none, it asks you to pick SpecKit, OpenSpec, or none. Then it installs the CLI if needed (`specify` through uv, `openspec` through npm) and runs `specify init` / `openspec init` non-interactively for your agent. If you pick none, `sdd-plan` writes plans by hand, and you can add a framework later by rerunning init.
-3. **Ask for settings** that `.config/.gitconfig` doesn't already have: the base branch, (optionally) reviewers, and with Linear the team and the app's Linear project (which you create in Linear first). GitLab needs no settings: everything comes from the remote and the board.
+3. **Ask for settings** that `.config/.gitconfig` doesn't already have: the base branch, (optionally) reviewers, (optionally) a Google Drive folder for a copy of the project docs, and with Linear the team and the app's Linear project (which you create in Linear first). GitLab needs no settings of its own: everything comes from the remote and the board.
 4. **Install** `.config/.gitconfig`, `.config/.commit-message-template`, and `.config/.pre-commit-config.yaml`, skipping any that exist. If the repo already has a root `.pre-commit-config.yaml` or another hook manager (husky, lefthook), it uses that instead. With a tracker and SpecKit or no framework, it gitignores `specs/`, since the tracker holds the spec. codekit's own scratch files (review reports, working copies) go in the system temp folder, never the repo.
 5. **Wire them in** with `git config --local --add include.path ../.config/.gitconfig`, and install pre-commit.
 6. **Write the SDD context:** `.specify/memory/constitution.md` or `openspec/config.yaml`, built from codekit's constitution plus the Project Patterns found in your code. A file you've already filled in is never replaced.
-7. **Set up the project docs.** It offers to build them now, which also adds the decisions from specs already merged to the Decision Log. With a tracker it offers the CI job that keeps them current. Without one, `sdd-push` keeps them current and a pre-push hook warns when they fall behind. See [Project docs](#project-docs) below.
+7. **Set up the project docs.** It offers to build them now, which also adds the decisions from specs already merged to the Decision Log. With a tracker it offers the CI job that keeps them current. Without one, `sdd-push` keeps them current and a pre-push hook warns when they fall behind. With a Drive folder, it also sets up the [copy to Google Drive](#google-drive-copy). See [Project docs](#project-docs) below.
 
-Commit `.config/`, `.gitignore`, the framework files (including the constitution or config), `docs/project/` if built, and the CI job's files if installed (`.github/workflows/codekit-docs.yml`, or `.gitlab/ci/codekit-docs.yml` and `.gitlab-ci.yml`), so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
+Commit `.config/`, `.gitignore`, the framework files (including the constitution or config), `docs/project/` if built, and the CI job's files if installed (`.github/workflows/codekit-docs.yml` or `codekit-drive.yml`, or `.gitlab/ci/codekit-docs.yml` or `codekit-drive.yml` and `.gitlab-ci.yml`), so teammates share them. Each teammate runs `/codekit init` once per clone, which only performs the `include.path` and hook steps. Run it again to add a framework later.
 
 ### Project docs
 
-Without a tracker, the project docs are files in `docs/project/`, and `sdd-push` updates them inside each PR. Nothing else to set up. The rest of this section is for Linear and GitLab issues.
+Without a tracker, the project docs are files in `docs/project/`, and `sdd-push` updates them inside each PR. There's nothing else to set up, unless you want the [Google Drive copy](#google-drive-copy). The rest of this section is for Linear and GitLab issues.
 
 The `codekit-docs` CI job keeps three documents current where your tickets live: the **Product Map** (what the app does and what its data and interfaces support, in product language, each entry linked to code), the **Decision Log** (what was decided and why, from each merged ticket's spec), and the **Glossary** (the team's vocabulary, which PMs edit where it lives). With Linear they're documents in your Linear project, so PMs can read them, ask Linear Agent about the app, and file tickets there without a code-host seat. With GitLab issues they're pages in the project's wiki, next to the board.
 
@@ -139,6 +139,43 @@ To use an Anthropic API key instead, set `ANTHROPIC_API_KEY` in place of `CLAUDE
 
 Runs count against that Claude plan's usage.
 
+### Google Drive copy
+
+This is optional, with or without a tracker. With `codekit.drive` set to a Drive folder's ID, CI also copies the Product Map, Glossary, and Decision Log into that folder as Google Docs, for people who can't open the tracker or the repo. They read them in Drive, or ask Claude about them through their own Google Drive connector. With `codekit-board`, put the folder's link on the board profile's `Project docs:` line.
+- **With a tracker:** the `codekit-docs` job copies the docs right after it publishes them.
+- **Without one:** init installs the `codekit-drive` job (`.github/workflows/codekit-drive.yml`, or `.gitlab/ci/codekit-drive.yml`). It runs no Claude, and copies `docs/project/` after each merge that changes it.
+
+The copy only goes one way. Each run finds the docs by title and replaces them whole, so their links never change, and a doc deleted in Drive comes back on the next run. Edit the docs where they live, never in Drive. Share the folder as Viewer or Commenter with whoever should read it. In `codekit-docs`, a failed copy only warns, and the next run copies everything again.
+
+Set it up once. One OAuth client and token can serve every repo:
+
+1. **Folder:** create it in Drive, and paste its link when init asks.
+2. **OAuth client:** in the [Google Cloud console](https://console.cloud.google.com/), create a project (it's free) and enable the **Google Drive API**. Then, in **Google Auth Platform**:
+   - **Branding:** set an app name and your email.
+   - **Audience:** pick **External**, or **Internal** if everyone is in one Google Workspace. For External, choose **Publish app**, so the status is **In production**. In Testing, the token expires after 7 days.
+   - **Clients:** create a **Web application** client with the authorized redirect URI `https://developers.google.com/oauthplayground`. Keep its client ID and client secret.
+3. **Refresh token:** open the [OAuth 2.0 Playground](https://developers.google.com/oauthplayground).
+   - Under the gear icon, check **Use your own OAuth credentials**, and paste the client ID and secret.
+   - In Step 1, type the scope `https://www.googleapis.com/auth/drive`, choose **Authorize APIs**, and sign in as a Google account with Editor on the folder. Google warns that the app isn't verified. That's expected, since you're its only user: choose **Advanced**, then continue.
+   - In Step 2, choose **Exchange authorization code for tokens**, and copy the **refresh token**.
+
+   This permission reaches every file that account can open. To limit it to this folder, sign in as a separate Google account that only has the folder shared with it.
+4. **Secrets:** set them in your own terminal, pasting each value when prompted (init tells you which are missing):
+
+   ```bash
+   # GitHub
+   gh secret set CODEKIT_DRIVE_CLIENT_ID
+   gh secret set CODEKIT_DRIVE_CLIENT_SECRET
+   gh secret set CODEKIT_DRIVE_REFRESH_TOKEN
+
+   # GitLab
+   read -rs t && printf %s "$t" | glab variable set CODEKIT_DRIVE_CLIENT_ID --masked --protected; unset t
+   read -rs t && printf %s "$t" | glab variable set CODEKIT_DRIVE_CLIENT_SECRET --masked --protected; unset t
+   read -rs t && printf %s "$t" | glab variable set CODEKIT_DRIVE_REFRESH_TOKEN --masked --protected; unset t
+   ```
+
+   For more than one repo, set them once as GitHub organization secrets or GitLab group variables.
+
 ## 3. Keeping current
 
 ```text
@@ -165,4 +202,6 @@ It ends with a before → after version table and the changed files. Nothing is 
 | Issue didn't move to In Review | Linear: codekit looks for a *started*-type state with "review" in its name. If the team has none, it only links the PR. Add one in Linear, or let the integration's automations move it. GitLab: it looks for a column on the project's first board whose label contains "review". Draft PRs never move it. |
 | GitLab issue didn't close on merge | GitLab closes issues from `Fixes #123` only when the merge request targets the project's default branch. `sdd-push` warns when the base branch isn't it. |
 | `wiki-docs`: can't reach the wiki | Turn the project's wiki on, check that you can push to the code, and for a brand-new wiki create its first page in the browser. In CI, check that `CODEKIT_WIKI_TOKEN` is set and the base branch is protected. |
+| Drive copy: `invalid_grant` | The refresh token was revoked, or the OAuth client is still in Testing, where tokens last 7 days. Publish it (**Google Auth Platform → Audience → Publish app**), create a new token in the Playground, and update `CODEKIT_DRIVE_REFRESH_TOKEN`. |
+| Drive copy: can't see the folder | Check `codekit.drive`, and share the folder as Editor with the Google account that made the token. |
 | SpecKit created a `001-…` branch | Its optional `git` extension is enabled. See [extensions/speckit.md](extensions/speckit.md#branches). |
